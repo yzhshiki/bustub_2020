@@ -15,7 +15,7 @@
 #include <list>
 #include <mutex>  // NOLINT
 #include <vector>
-
+#include <unordered_map>
 #include "buffer/replacer.h"
 #include "common/config.h"
 
@@ -47,6 +47,11 @@ class LRUReplacer : public Replacer {
 
  private:
   // TODO(student): implement me!
+  // std::vector<frame_id_t> unpinned_fids_;
+  std::list<frame_id_t> unpinned_fids_{};
+  std::unordered_map<frame_id_t, decltype(unpinned_fids_.begin())> frame2iter_{};
+  size_t max_num_pages;
+  std::mutex latch_;
 };
 
 }  // namespace bustub
