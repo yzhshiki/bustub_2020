@@ -28,9 +28,7 @@ void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_typ
 int BPlusTreePage::GetSize() const { return size_; }
 void BPlusTreePage::SetSize(int size) { size_ = size; }
 void BPlusTreePage::IncreaseSize(int amount) {
-    if(size_ + amount <= max_size_) {
-        size_ += amount;
-    }
+    size_ += amount;
 }
 
 /*

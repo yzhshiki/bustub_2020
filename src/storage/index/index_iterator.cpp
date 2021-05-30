@@ -12,19 +12,60 @@ namespace bustub {
  * set your own input parameters
  */
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::IndexIterator() = default;
+INDEXITERATOR_TYPE::IndexIterator() : page_id(-1), index_in_leaf_(-1), leaf_page_(nullptr),
+buffer_pool_manager_(nullptr) {}
 
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE::~IndexIterator() = default;
+INDEXITERATOR_TYPE::IndexIterator(int index_in_leaf, Page *page, BufferPoolManager *buffer_pool_manager):
+index_in_leaf_(index_in_leaf), buffer_pool_manager_(buffer_pool_manager) {
+    if(page != nullptr) {
+        leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(page->GetData());
+        page_id = leaf_page_->GetPageId();
+    }
+}
 
 INDEX_TEMPLATE_ARGUMENTS
-bool INDEXITERATOR_TYPE::isEnd() { throw std::runtime_error("unimplemented"); }
+INDEXITERATOR_TYPE::~IndexIterator() {
+    // maybe i should judge if the page_id is INVALID?
+    if(leaf_page_ != nullptr) {
+        buffer_pool_manager_->UnpinPage(page_id, false);
+    }
+};
 
 INDEX_TEMPLATE_ARGUMENTS
-const MappingType &INDEXITERATOR_TYPE::operator*() { throw std::runtime_error("unimplemented"); }
+bool INDEXITERATOR_TYPE::isEnd() {
+    return index_in_leaf_ == -1 && page_id == -1;
+}
 
 INDEX_TEMPLATE_ARGUMENTS
-INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() { throw std::runtime_error("unimplemented"); }
+const MappingType &INDEXITERATOR_TYPE::operator*() {
+    return leaf_page_->GetItem(index_in_leaf_);
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
+    if(isEnd()) {
+        return *this;
+    }
+    index_in_leaf_ ++;
+    // ++后超出此页
+    if(index_in_leaf_ == leaf_page_->GetSize()) {
+        page_id_t next_page_id =  leaf_page_->GetNextPageId();
+        // 若下一页是invalid
+        if(next_page_id == INVALID_PAGE_ID) {
+            buffer_pool_manager_->UnpinPage(page_id, false);
+            leaf_page_ = nullptr;
+            index_in_leaf_ = -1;
+            page_id = -1;
+            return *this;
+        }
+        Page *next_page = buffer_pool_manager_->FetchPage(next_page_id);
+        buffer_pool_manager_->UnpinPage(page_id, false);
+        leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(next_page->GetData());
+        index_in_leaf_ = 0;
+    }
+    return *this;
+}
 
 template class IndexIterator<GenericKey<4>, RID, GenericComparator<4>>;
 

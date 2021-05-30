@@ -51,10 +51,12 @@ class BPlusTreeLeafPage : public BPlusTreePage {
   page_id_t GetPrePageId() const;
   void SetPrePageId(page_id_t pre_page_id);
   KeyType KeyAt(int index) const;
+  ValueType ValueAt(int index) const;
   int KeyIndex(const KeyType &key, const KeyComparator &comparator) const;
   const MappingType &GetItem(int index);
 
   // insert and delete methods
+  bool checkDupl(const KeyType &key, const KeyComparator &comparator);
   int Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator);
   bool Lookup(const KeyType &key, ValueType *value, const KeyComparator &comparator) const;
   int RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator);

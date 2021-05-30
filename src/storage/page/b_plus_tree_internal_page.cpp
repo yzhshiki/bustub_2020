@@ -82,7 +82,7 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
   //由于这里的实现方式是使array[0]为invalid，所以ki对应于array[i].first，pi为array[i-1].second（在ki左边）
   //先写出key比本节点所有key都大的情况
   int size = GetSize();
-  if(comparator(key, array[size - 1].first) <= 0) {
+  if(comparator(key, array[size - 1].first) >= 0) {
     return array[size - 1].second;
   }
   // //二分写法
@@ -133,8 +133,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertAt(const int index, const KeyType &ne
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetParentToMe(page_id_t page_id, BufferPoolManager *buffer_pool_manager) {
   Page *page = buffer_pool_manager->FetchPage(page_id);
-  BPlusTreePage *internal_page = reinterpret_cast<BPlusTreePage *> (page->GetData());
-  internal_page->SetPageId(GetPageId());
+  BPlusTreePage *child_page = reinterpret_cast<BPlusTreePage *> (page);
+  child_page->SetParentPageId(GetPageId());
   buffer_pool_manager->UnpinPage(page_id, true);
 }
 
@@ -168,7 +168,7 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value, 
   if(i == -1) {
     return GetSize();
   }
-  InsertAt(i + i, new_key, new_value);
+  InsertAt(i + 1, new_key, new_value);
   return GetSize();
 }
 

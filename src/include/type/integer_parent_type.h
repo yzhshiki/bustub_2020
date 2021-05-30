@@ -132,7 +132,7 @@ Value IntegerParentType::MultiplyValue(const Value &left, const Value &right) co
   // Overflow detection
   if (sizeof(x) >= sizeof(y)) {
     if ((y != 0 && prod1 / y != x)) {
-      throw Exception(ExceptionType::OUT_OF_RANGE, "Numeric value out of range.");
+       Exception(ExceptionType::OUT_OF_RANGE, "Numeric value out of range.");
     }
     return Value(left.GetTypeId(), prod1);
   }

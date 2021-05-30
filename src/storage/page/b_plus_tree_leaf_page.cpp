@@ -59,6 +59,9 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetPrePageId(page_id_t pre_page_id) { pre_page_
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comparator) const { 
     int size = GetSize();
+    if(comparator(array[size - 1].first, key) == -1) {
+      return size;
+    }
     int l = 0;
     int r = size - 1;
     int m = (l + r) >> 1;
@@ -87,6 +90,10 @@ KeyType B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const {
   return array[index].first;
 }
 
+INDEX_TEMPLATE_ARGUMENTS
+ValueType B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const {
+  return array[index].second;
+}
 /*
  * Helper method to find and return the key & value pair associated with input
  * "index"(a.k.a array offset)
@@ -100,6 +107,17 @@ const MappingType &B_PLUS_TREE_LEAF_PAGE_TYPE::GetItem(int index) {
 /*****************************************************************************
  * INSERTION
  *****************************************************************************/
+
+//check if there already exists the key
+INDEX_TEMPLATE_ARGUMENTS
+bool B_PLUS_TREE_LEAF_PAGE_TYPE::checkDupl(const KeyType &key, const KeyComparator &comparator) {
+  int index;
+  index = KeyIndex(key, comparator);
+  if(comparator(key, KeyAt(index)) == 0) {
+    return true;
+  }
+  return false;
+}
 
 /*
  * Insert Key & value pair into array at specified index
@@ -159,6 +177,11 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyNFrom(MappingType *items, int size) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 bool B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, ValueType *value, const KeyComparator &comparator) const {
+  int index = KeyIndex(key, comparator);
+  if(comparator(key, KeyAt(index)) == 0) {
+    *value = ValueAt(index);
+    return true;
+  }
   return false;
 }
 
