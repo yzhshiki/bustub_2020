@@ -13,8 +13,8 @@
  * For range scan of b+ tree
  */
 #pragma once
-#include "storage/page/b_plus_tree_leaf_page.h"
 #include <list>
+#include "storage/page/b_plus_tree_leaf_page.h"
 
 namespace bustub {
 
@@ -38,16 +38,14 @@ class IndexIterator {
     return index_in_leaf_ == itr.index_in_leaf_ && page_id == itr.page_id;
   }
 
-  bool operator!=(const IndexIterator &itr) const {
-    return !(*this == itr);
-  }
+  bool operator!=(const IndexIterator &itr) const { return !(*this == itr); }
 
  private:
   // add your own private member variables here
   page_id_t page_id{INVALID_PAGE_ID};
-  int index_in_leaf_;
-  B_PLUS_TREE_LEAF_PAGE_TYPE *leaf_page_;
-  BufferPoolManager *buffer_pool_manager_;
+  int index_in_leaf_{-1};
+  B_PLUS_TREE_LEAF_PAGE_TYPE *leaf_page_{nullptr};
+  BufferPoolManager *buffer_pool_manager_{nullptr};
 };
 
 }  // namespace bustub

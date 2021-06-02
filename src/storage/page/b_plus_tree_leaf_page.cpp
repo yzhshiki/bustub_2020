@@ -28,7 +28,7 @@ namespace bustub {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Init(page_id_t page_id, page_id_t parent_id, int max_size) {
-  SetPageType(IndexPageType::LEAF_PAGE); 
+  SetPageType(IndexPageType::LEAF_PAGE);
   SetSize(0);
   SetPageId(page_id);
   SetParentPageId(parent_id);
@@ -57,28 +57,26 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetPrePageId(page_id_t pre_page_id) { pre_page_
  * NOTE: This method is only used when generating index iterator
  */
 INDEX_TEMPLATE_ARGUMENTS
-int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comparator) const { 
-    int size = GetSize();
-    if(comparator(array[size - 1].first, key) == -1) {
-      return size;
+int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comparator) const {
+  int size = GetSize();
+  if (comparator(array[size - 1].first, key) == -1) {
+    return size;
+  }
+  int l = 0;
+  int r = size - 1;
+  int m = (l + r) >> 1;
+  while (l < r) {
+    m = (l + r) >> 1;
+    int result = comparator(array[m].first, key);
+    if (result == -1) {
+      l = m + 1;
+    } else if (result == 1) {
+      r = m;
+    } else if (result == 0) {
+      return m;
     }
-    int l = 0;
-    int r = size - 1;
-    int m = (l + r) >> 1;
-    while(l < r) {
-      m = (l + r) >> 1;
-      int result = comparator(array[m].first, key);
-      if(result == -1) {
-        l = m + 1;
-      }
-      else if(result == 1) {
-        r = m;
-      }
-      else if(result == 0) {
-        return m;
-      }
-    }
-    return l;
+  }
+  return l;
 }
 
 /*
@@ -86,14 +84,10 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator
  * array offset)
  */
 INDEX_TEMPLATE_ARGUMENTS
-KeyType B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const {
-  return array[index].first;
-}
+KeyType B_PLUS_TREE_LEAF_PAGE_TYPE::KeyAt(int index) const { return array[index].first; }
 
 INDEX_TEMPLATE_ARGUMENTS
-ValueType B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const {
-  return array[index].second;
-}
+ValueType B_PLUS_TREE_LEAF_PAGE_TYPE::ValueAt(int index) const { return array[index].second; }
 /*
  * Helper method to find and return the key & value pair associated with input
  * "index"(a.k.a array offset)
@@ -108,15 +102,12 @@ const MappingType &B_PLUS_TREE_LEAF_PAGE_TYPE::GetItem(int index) {
  * INSERTION
  *****************************************************************************/
 
-//check if there already exists the key
+// check if there already exists the key
 INDEX_TEMPLATE_ARGUMENTS
 bool B_PLUS_TREE_LEAF_PAGE_TYPE::checkDupl(const KeyType &key, const KeyComparator &comparator) {
   int index;
   index = KeyIndex(key, comparator);
-  if(comparator(key, KeyAt(index)) == 0) {
-    return true;
-  }
-  return false;
+  return (comparator(key, KeyAt(index)) == 0);
 }
 
 /*
@@ -125,7 +116,7 @@ bool B_PLUS_TREE_LEAF_PAGE_TYPE::checkDupl(const KeyType &key, const KeyComparat
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::InsertAt(int index, const KeyType &key, const ValueType &value) {
   int size = GetSize();
-  for(int i = size; i > index; -- i) {
+  for (int i = size; i > index; --i) {
     array[i] = array[i - 1];
   }
   array[index] = std::make_pair(key, value);
@@ -154,7 +145,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveHalfTo(BPlusTreeLeafPage *recipient) {
   int size = GetSize();
   int move_size = size / 2;
   recipient->CopyNFrom(array + size - move_size, move_size);
-  IncreaseSize(- move_size);
+  IncreaseSize(-move_size);
 }
 
 /*
@@ -162,7 +153,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveHalfTo(BPlusTreeLeafPage *recipient) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyNFrom(MappingType *items, int size) {
-  for(int i = 0; i < size; ++ i) {
+  for (int i = 0; i < size; ++i) {
     CopyLastFrom(items[i]);
   }
 }
@@ -178,7 +169,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyNFrom(MappingType *items, int size) {
 INDEX_TEMPLATE_ARGUMENTS
 bool B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, ValueType *value, const KeyComparator &comparator) const {
   int index = KeyIndex(key, comparator);
-  if(comparator(key, KeyAt(index)) == 0) {
+  if (comparator(key, KeyAt(index)) == 0) {
     *value = ValueAt(index);
     return true;
   }
@@ -195,7 +186,7 @@ bool B_PLUS_TREE_LEAF_PAGE_TYPE::Lookup(const KeyType &key, ValueType *value, co
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
   int size = GetSize();
-  for(int i = index; i < size - 1; ++ i) {
+  for (int i = index; i < size - 1; ++i) {
     array[i] = array[i + 1];
   }
   IncreaseSize(-1);
@@ -210,7 +201,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator) {
   int index = KeyIndex(key, comparator);
-  if(comparator(key, array[index].first) != 0) {
+  if (comparator(key, array[index].first) != 0) {
     return GetSize();
   }
   Remove(index);
@@ -247,9 +238,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveFirstToEndOf(BPlusTreeLeafPage *recipient) 
  * Copy the item into the end of my item list. (Append item to my array)
  */
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyLastFrom(const MappingType &item) {
-  InsertAt(GetSize(), item.first, item.second);
-}
+void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyLastFrom(const MappingType &item) { InsertAt(GetSize(), item.first, item.second); }
 
 /*
  * Remove the last key & value pair from this page to "recipient" page.
@@ -264,9 +253,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeLeafPage *recipient)
  * Insert item at the front of my items. Move items accordingly.
  */
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyFirstFrom(const MappingType &item) {
-  InsertAt(0, item.first, item.second);
-}
+void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyFirstFrom(const MappingType &item) { InsertAt(0, item.first, item.second); }
 
 template class BPlusTreeLeafPage<GenericKey<4>, RID, GenericComparator<4>>;
 template class BPlusTreeLeafPage<GenericKey<8>, RID, GenericComparator<8>>;

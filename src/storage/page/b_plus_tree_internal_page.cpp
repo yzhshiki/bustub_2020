@@ -53,8 +53,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetKeyAt(int index, const KeyType &key) { a
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueIndex(const ValueType &value) const {
   int size = GetSize();
-  for(int i = 0; i < size; ++i) {
-    if(value == array[i].second) {
+  for (int i = 0; i < size; ++i) {
+    if (value == array[i].second) {
       return i;
     }
   }
@@ -78,42 +78,42 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const { return arra
  */
 INDEX_TEMPLATE_ARGUMENTS
 ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const {
-  //若Ki为第一个>=key的key，ki==key则返回pi+1，ki>key则返回pi。
-  //由于这里的实现方式是使array[0]为invalid，所以ki对应于array[i].first，pi为array[i-1].second（在ki左边）
-  //先写出key比本节点所有key都大的情况
+  // 若Ki为第一个>=key的key，ki==key则返回pi+1，ki>key则返回pi。
+  // 由于这里的实现方式是使array[0]为invalid，所以ki对应于array[i].first，pi为array[i-1].second（在ki左边）
+  // 先写出key比本节点所有key都大的情况
   int size = GetSize();
-  if(comparator(key, array[size - 1].first) >= 0) {
+  if (comparator(key, array[size - 1].first) >= 0) {
     return array[size - 1].second;
   }
-  // //二分写法
-  // int l = 1;
-  // int r = size - 1;
-  // int m = (l + r) >> 1;
-  // while(l < r) {
-  //   m = (l + r) >> 1;
-  //   if(comparator(key, array[m].first) <= 0) {
-  //     r = m;
-  //   }
-  //   else {
-  //     l = m + 1;
-  //   }
-  // }
-  // if(comparator(key, array[r].first) == -1) {
-  //   return array[r - 1].second;
-  // }
-  // else if(comparator(key, array[r].first) == 0) {
-  //   return array[r].second;
-  // }
-  //顺序写法
-  for(int i = 1; i < size; i ++) {
-    if(comparator(key, array[i].first) == -1) {
-      return array[i - 1].second;
-    }
-    else if(comparator(key, array[i].first) == 0) {
-      return array[i].second;
+  // 二分写法
+  int l = 1;
+  int r = size - 1;
+  int m = (l + r) >> 1;
+  while (l < r) {
+    m = (l + r) >> 1;
+    if (comparator(key, array[m].first) <= 0) {
+      r = m;
+    } else {
+      l = m + 1;
     }
   }
-  return array[size - 1].second;
+  if (comparator(key, array[r].first) == -1) {
+    return array[r - 1].second;
+  }
+  // else if (comparator(key, array[r].first) == 0) {
+  //   return array[r].second;
+  // }
+  return array[r].second;
+  // // 顺序写法
+  // for (int i = 1; i < size; i++) {
+  //   if (comparator(key, array[i].first) == -1) {
+  //     return array[i - 1].second;
+  //   }
+  //   if (comparator(key, array[i].first) == 0) {
+  //     return array[i].second;
+  //   }
+  // }
+  // return array[size - 1].second;
 }
 
 /* Insert helper function
@@ -122,7 +122,7 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertAt(const int index, const KeyType &new_key, const ValueType &new_value) {
   int size = GetSize();
-  for(int i = size; i > index; -- i) {
+  for (int i = size; i > index; --i) {
     array[i] = array[i - 1];
   }
   array[index] = std::make_pair(new_key, new_value);
@@ -133,7 +133,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertAt(const int index, const KeyType &ne
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::SetParentToMe(page_id_t page_id, BufferPoolManager *buffer_pool_manager) {
   Page *page = buffer_pool_manager->FetchPage(page_id);
-  BPlusTreePage *child_page = reinterpret_cast<BPlusTreePage *> (page);
+  BPlusTreePage *child_page = reinterpret_cast<BPlusTreePage *>(page);
   child_page->SetParentPageId(GetPageId());
   buffer_pool_manager->UnpinPage(page_id, true);
 }
@@ -165,7 +165,7 @@ int B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertNodeAfter(const ValueType &old_value, 
                                                     const ValueType &new_value) {
   int i = ValueIndex(old_value);
   // 没搜到于是没插入，大小不变
-  if(i == -1) {
+  if (i == -1) {
     return GetSize();
   }
   InsertAt(i + 1, new_key, new_value);
@@ -187,7 +187,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient
   // 4个移2个，5个移2个。
   int move_size = size / 2;
   recipient->CopyNFrom(array + size - move_size, move_size, buffer_pool_manager);
-  IncreaseSize(- move_size);
+  IncreaseSize(-move_size);
 }
 
 /* Copy entries into me, starting from {items} and copy {size} entries.
@@ -197,7 +197,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, BufferPoolManager *buffer_pool_manager) {
   // 这里是R节点从L节点拿走后面的move_size个KV对，放到自己的后面。
-  for(int i = 0; i < size; ++ i) {
+  for (int i = 0; i < size; ++i) {
     CopyLastFrom(items[i], buffer_pool_manager);
   }
 }
@@ -213,7 +213,7 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::CopyNFrom(MappingType *items, int size, Buf
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(int index) {
   int size = GetSize();
-  for(int i = index; i < size - 1; ++ i) {
+  for (int i = index; i < size - 1; ++i) {
     array[i] = array[i + 1];
   }
   IncreaseSize(-1);

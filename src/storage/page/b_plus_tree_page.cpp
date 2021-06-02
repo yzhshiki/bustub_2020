@@ -27,15 +27,13 @@ void BPlusTreePage::SetPageType(IndexPageType page_type) { page_type_ = page_typ
  */
 int BPlusTreePage::GetSize() const { return size_; }
 void BPlusTreePage::SetSize(int size) { size_ = size; }
-void BPlusTreePage::IncreaseSize(int amount) {
-    size_ += amount;
-}
+void BPlusTreePage::IncreaseSize(int amount) { size_ += amount; }
 
 /*
  * Helper methods to get/set max size (capacity) of the page
  */
 int BPlusTreePage::GetMaxSize() const { return max_size_; }
-void BPlusTreePage::SetMaxSize(int size) { max_size_ = size; }
+void BPlusTreePage::SetMaxSize(int max_size) { max_size_ = max_size; }
 
 /*
  * Helper method to get min page size

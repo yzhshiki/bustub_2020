@@ -12,7 +12,7 @@
 
 namespace bustub {
 
-TEST(BPlusTreeTests, DISABLED_DeleteTest1) {
+TEST(BPlusTreeTests, DeleteTest1) {
   // create KeyComparator and index schema
   std::string createStmt = "a bigint";
   Schema *key_schema = ParseCreateStatement(createStmt);
@@ -92,7 +92,7 @@ TEST(BPlusTreeTests, DISABLED_DeleteTest1) {
   remove("test.log");
 }
 
-TEST(BPlusTreeTests, DISABLED_DeleteTest2) {
+TEST(BPlusTreeTests, DeleteTest2) {
   // create KeyComparator and index schema
   Schema *key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema);
@@ -125,7 +125,6 @@ TEST(BPlusTreeTests, DISABLED_DeleteTest2) {
     index_key.SetFromInteger(key);
     tree.GetValue(index_key, &rids);
     EXPECT_EQ(rids.size(), 1);
-
     int64_t value = key & 0xFFFFFFFF;
     EXPECT_EQ(rids[0].GetSlotNum(), value);
   }
@@ -152,6 +151,10 @@ TEST(BPlusTreeTests, DISABLED_DeleteTest2) {
   current_key = start_key;
   int64_t size = 0;
   index_key.SetFromInteger(start_key);
+  // auto iter = tree.Begin(index_key);
+  // if ( iter == tree.end() ) {
+  //   std::cout<<"wow\n";
+  // }
   for (auto iterator = tree.Begin(index_key); iterator != tree.end(); ++iterator) {
     auto location = (*iterator).second;
     EXPECT_EQ(location.GetPageId(), 0);

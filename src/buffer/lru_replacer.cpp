@@ -33,7 +33,7 @@ bool LRUReplacer::Victim(frame_id_t *frame_id) {
 void LRUReplacer::Pin(frame_id_t frame_id) {
   std::scoped_lock<std::mutex> lock{latch_};
   auto p = frame2iter_.find(frame_id);
-  if(p != frame2iter_.end()){
+  if (p != frame2iter_.end()) {
     auto iter = p->second;
     unpinned_fids_.erase(iter);
     frame2iter_.erase(p);
@@ -45,7 +45,7 @@ void LRUReplacer::Unpin(frame_id_t frame_id) {
   if (unpinned_fids_.size() == max_num_pages) {
     return;
   }
-  if(frame2iter_.find(frame_id) != frame2iter_.end()){
+  if (frame2iter_.find(frame_id) != frame2iter_.end()) {
     return;
   }
   unpinned_fids_.push_back(frame_id);

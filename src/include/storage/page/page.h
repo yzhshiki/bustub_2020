@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <mutex>
 
 #include "common/config.h"
 #include "common/rwlatch.h"
