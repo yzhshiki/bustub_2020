@@ -253,6 +253,7 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
  */
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
+  printf("entering remove\n");
   root_latch_.lock();
   if (IsEmpty()) {
     root_latch_.unlock();
@@ -266,6 +267,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   page->RUnlatch();
   page->WLatch();
   LeafPage *leaf_page = reinterpret_cast<LeafPage *>(page);
+  printf("entering remove ans delete record\n");
   leaf_page->RemoveAndDeleteRecord(key, comparator_);
   if (leaf_page->GetSize() < leaf_page->GetMinSize()) {
     root_latch_.lock();
@@ -274,6 +276,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
       parent_page->WLatch();
     }
     // 持有root锁，当前页写锁，可能持有parent写锁
+    LOG_DEBUG("entering cor\n");
     CoalesceOrRedistribute(leaf_page, transaction);
   }
   page->WUnlatch();
