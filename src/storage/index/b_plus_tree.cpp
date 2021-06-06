@@ -261,6 +261,7 @@ void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
   }
   Print(buffer_pool_manager_);
   root_latch_.unlock();
+  FindLeafPageInTran(key, false, transaction);
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
   Ancestors->pop_back();
