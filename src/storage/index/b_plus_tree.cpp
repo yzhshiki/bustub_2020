@@ -11,9 +11,9 @@
 
 #include <string>
 
+#include "storage/index/b_plus_tree.h"
 #include "common/exception.h"
 #include "common/rid.h"
-#include "storage/index/b_plus_tree.h"
 #include "storage/page/header_page.h"
 
 namespace bustub {
@@ -81,7 +81,7 @@ bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     return true;
   }
   root_latch_.unlock();
-  return InsertIntoLeaf(key, value, transaction, true);
+  return InsertIntoLeaf(key, value, transaction, false);
 }
 /*
  * Insert constant key & value pair into an empty tree
@@ -125,20 +125,24 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
   Ancestors->pop_back();
-  page->RUnlatch();
-  page->WLatch();
-  // LOG_DEBUG("InsertIntoLeaf id: %d with key: %ld, value: %ld\n",page->GetPageId(), key.ToString(), value.Get());
   LeafPage *leaf_page = reinterpret_cast<LeafPage *>(page);
+  // if(notfull || leaf_page->GetSize() != leaf_max_size_ - 1) {
+  //   page->RUnlatch();
+  //   page->WLatch();
+  // }
+  // LOG_DEBUG("InsertIntoLeaf id: %d with key: %ld, value: %ld\n",page->GetPageId(), key.ToString(), value.Get());
   if (leaf_page->checkDupl(key, comparator_)) {
     page->WUnlatch();
     return false;
   }
   int old_size = leaf_page->GetSize();
   // 乐观锁需要预判，如果即将满，则放弃之前的乐观锁过程，悲观走一次（全部获取写锁且不释放）
-  if(old_size == leaf_max_size_ - 1 && notfull) {
-    page->WUnlatch();
-    return InsertIntoLeaf(key, value, transaction, false);
-  }
+  // if(old_size == leaf_max_size_ - 1 && notfull) {
+  //   std::cout<<"start to pessmistic\n";
+  //   std::cout<<transaction->GetThreadId()<<std::endl;
+  //   page->WUnlatch();
+  //   return InsertIntoLeaf(key, value, transaction, false);
+  // }
   leaf_page->Insert(key, value, comparator_);
   int new_size = leaf_page->GetSize();
   bool inserted = (new_size > old_size);
@@ -154,6 +158,7 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
     }
   }
   // assert(page->GetPinCount() == 1);
+  releaseAncestorLocks(transaction);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), inserted);
   // LOG_DEBUG("InsertIntoLeaf id: %d with key: %ld, value: %ld\n",leaf_page->GetPageId(), key.ToString(),
@@ -217,13 +222,15 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
                                         std::cout<<"start to insertIntoParent\n";
   if (old_node->IsRootPage()) {
     Page *new_root_page = buffer_pool_manager_->NewPage(&root_page_id_);
+    new_root_page->WLatch();
     InternalPage *new_root_inter_page = reinterpret_cast<InternalPage *>(new_root_page);
     new_root_inter_page->Init(root_page_id_, root_page_id_, internal_max_size_);
     new_root_inter_page->PopulateNewRoot(old_node->GetPageId(), key, new_node->GetPageId());
     // assert(new_root_page->GetPinCount() == 1);
-    buffer_pool_manager_->UnpinPage(root_page_id_, true);
     old_node->SetParentPageId(root_page_id_);
     new_node->SetParentPageId(root_page_id_);
+    new_root_page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(root_page_id_, true);
     reinterpret_cast<Page *>(new_node)->WUnlatch();
     buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     UpdateRootPageId(0);
@@ -610,7 +617,12 @@ void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Trans
   root_latch_.unlock();
   Page *old_parent_page = parent_page;
   page_id_t old_page_id = old_parent_page->GetPageId();
-  old_parent_page->RLatch();
+  if(isSearch) {
+    old_parent_page->RLatch();
+  }
+  else {
+    old_parent_page->WLatch();
+  }
   transaction->AddIntoPageSet(old_parent_page);
   BPlusTreePage *bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   page_id_t page_id = parent_page->GetPageId();
@@ -626,10 +638,16 @@ void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Trans
     page_id = child_page_id;
     old_parent_page = parent_page;
     parent_page = buffer_pool_manager_->FetchPage(page_id);
-    parent_page->RLatch();
-    transaction->AddIntoPageSet(parent_page);
-    old_parent_page->RUnlatch();
-    buffer_pool_manager_->UnpinPage(old_page_id, false);
+    if(isSearch) {
+      parent_page->RLatch();
+      transaction->AddIntoPageSet(parent_page);
+      old_parent_page->RUnlatch();
+      buffer_pool_manager_->UnpinPage(old_page_id, false);
+    }
+    else {
+      parent_page->WLatch();
+      transaction->AddIntoPageSet(parent_page);
+    }
     old_page_id = page_id;
     bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   }
@@ -644,8 +662,11 @@ void BPLUSTREE_TYPE::releaseAncestorLocks(Transaction *transaction) {
   if(Ancestors->size() == 0) {
     return;
   }
-  while(Ancestors->size()) {
+  while(Ancestors->size() != 0) {
     Page *page = Ancestors->front();
+    page->WUnlatch();
+    buffer_pool_manager_->UnpinPage(page->GetPageId(), true);
+    Ancestors->pop_front();
   }
 }
 /*
