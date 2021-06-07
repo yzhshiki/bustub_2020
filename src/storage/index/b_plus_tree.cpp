@@ -81,7 +81,7 @@ bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     return true;
   }
   root_latch_.unlock();
-  return InsertIntoLeaf(key, value, transaction);
+  return InsertIntoLeaf(key, value, transaction, true);
 }
 /*
  * Insert constant key & value pair into an empty tree
@@ -116,12 +116,12 @@ void BPLUSTREE_TYPE::StartNewTree(const KeyType &key, const ValueType &value) {
  * immdiately, otherwise insert entry. Remember to deal with split if necessary.
  * @return: since we only support unique key, if user try to insert duplicate
  * keys return false, otherwise return true.
- * 进入后获得此页写锁，在split前获得parent写锁，split中获得sibling的写锁，insertInParent中释放parent与sibling的写锁
+ * 进入后获得此页写锁，split中获得sibling的写锁，insertInParent中释放parent与sibling的写锁
  */
 INDEX_TEMPLATE_ARGUMENTS
-bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction) {
+bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction, bool notfull) {
   // Page *page = FindLeafPage(key, false);
-  FindLeafPageInTran(key, false, transaction);
+  FindLeafPageInTran(key, false, transaction, notfull);
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
   Ancestors->pop_back();
@@ -134,6 +134,11 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
     return false;
   }
   int old_size = leaf_page->GetSize();
+  // 乐观锁需要预判，如果即将满，则放弃之前的乐观锁过程，悲观走一次（全部获取写锁且不释放）
+  if(old_size == leaf_max_size_ - 1 && notfull) {
+    page->WUnlatch();
+    return InsertIntoLeaf(key, value, transaction, false);
+  }
   leaf_page->Insert(key, value, comparator_);
   int new_size = leaf_page->GetSize();
   bool inserted = (new_size > old_size);
@@ -143,11 +148,6 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
       std::cout<<"start to split\n";
       std::cout<<"asking root latch\n";
       root_latch_.lock();
-      if(Ancestors->size() != 0) {
-        Page *parent_page = Ancestors->back();
-        std::cout<<"asking parent latch\n";
-        parent_page->WLatch();
-      }
       LeafPage *new_leaf_ptr = Split(leaf_page);
       InsertIntoParent(leaf_page, new_leaf_ptr->KeyAt(0), new_leaf_ptr, transaction);
       std::cout<<"end split\n";
@@ -243,14 +243,11 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
   if (new_size > parent_page->GetMaxSize()) {
     // 处理产生新root节点的问题！
     root_latch_.lock();
-    if(Ancestors->size() != 0) {
-      Page *grand_page = Ancestors->back();
-      grand_page->WLatch();
-    }
     InternalPage *new_inter_page = Split(parent_page);
     InsertIntoParent(parent_page, new_inter_page->KeyAt(0), new_inter_page, transaction);
     // buffer_pool_manager_->UnpinPage(new_inter_page->GetPageId(), true);
   }
+  releaseAncestorLocks(transaction);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(parent_id, true);
   reinterpret_cast<Page *>(new_node)->WUnlatch();
@@ -607,7 +604,7 @@ Page *BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost) {
 }
 
 INDEX_TEMPLATE_ARGUMENTS
-void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Transaction *transaction) {
+void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Transaction *transaction, bool isSearch) {
   root_latch_.lock();
   Page *parent_page = buffer_pool_manager_->FetchPage(root_page_id_);
   root_latch_.unlock();
@@ -639,6 +636,17 @@ void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Trans
   // LOG_DEBUG("FindLeafPage id: %d\nLeafPage size is : %d\n", parent_page->GetPageId(), bpt_page->GetSize());
   // return parent_page;
   // throw Exception(ExceptionType::NOT_IMPLEMENTED, "Implement this for test");
+}
+
+INDEX_TEMPLATE_ARGUMENTS
+void BPLUSTREE_TYPE::releaseAncestorLocks(Transaction *transaction) {
+  std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
+  if(Ancestors->size() == 0) {
+    return;
+  }
+  while(Ancestors->size()) {
+    Page *page = Ancestors->front();
+  }
 }
 /*
  * Update/Insert root page id in header page(where page_id = 0, header_page is
