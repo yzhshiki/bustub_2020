@@ -56,9 +56,10 @@ INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
       page_id = -1;
       return *this;
     }
-    Page *next_page = buffer_pool_manager_->FetchPage(next_page_id);
     reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
     buffer_pool_manager_->UnpinPage(page_id, false);
+    Page *next_page = buffer_pool_manager_->FetchPage(next_page_id);
+    next_page->RLatch();
     leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(next_page->GetData());
     index_in_leaf_ = 0;
   }

@@ -48,6 +48,7 @@ void InsertHelper(BPlusTree<GenericKey<8>, RID, GenericComparator<8>> *tree, con
   RID rid;
   // create transaction
   Transaction *transaction = new Transaction(tid);
+  // std::cout<<transaction->GetThreadId()<<std::endl;
   for (auto key : keys) {
     int64_t value = key & 0xFFFFFFFF;
     rid.Set(static_cast<int32_t>(key >> 32), value);
@@ -545,6 +546,7 @@ TEST(BPlusTreeConcurrentTest, InsertTest2) {
  * Description: Concurrently delete a set of keys.
  */
 TEST(BPlusTreeConcurrentTest, DeleteTest1) {
+  assert(false);
   TEST_TIMEOUT_BEGIN
   DeleteTest1Call();
   remove("test.db");
