@@ -132,6 +132,7 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
   // }
   // LOG_DEBUG("InsertIntoLeaf id: %d with key: %ld, value: %ld\n",page->GetPageId(), key.ToString(), value.Get());
   if (leaf_page->checkDupl(key, comparator_)) {
+    root_latch_.unlock();
     page->WUnlatch();
     return false;
   }
@@ -149,15 +150,16 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
   if (inserted) {
     // std::cout<<"Insert key "<<key.ToString()<<" value"<<value.GetSlotNum()<<std::endl;
     if (new_size == leaf_max_size_) {
-      std::cout<<"start to split\n";
-      std::cout<<"asking root latch\n";
-      root_latch_.lock();
+      // std::cout<<"start to split\n";
+      // std::cout<<"asking root latch\n";
+      // root_latch_.lock();
       LeafPage *new_leaf_ptr = Split(leaf_page);
       InsertIntoParent(leaf_page, new_leaf_ptr->KeyAt(0), new_leaf_ptr, transaction);
-      std::cout<<"end split\n";
+      // std::cout<<"end split\n";
     }
   }
   // assert(page->GetPinCount() == 1);
+  root_latch_.unlock();
   releaseAncestorLocks(transaction);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), inserted);
@@ -178,7 +180,7 @@ INDEX_TEMPLATE_ARGUMENTS
 template <typename N>
 N *BPLUSTREE_TYPE::Split(N *node) {
   // LOG_DEBUG("start to split id: %d\n",node->GetPageId());
-  std::cout<<"start to split new node\n";
+  // std::cout<<"start to split new nod/e\n";
   page_id_t new_page_id;
   Page *page = buffer_pool_manager_->NewPage(&new_page_id);
   page->WLatch();
@@ -194,7 +196,7 @@ N *BPLUSTREE_TYPE::Split(N *node) {
     leaf_page->SetNextPageId(new_page_id);
     leaf_page->MoveHalfTo(new_leaf_page);
     // assert(page->GetPinCount() == 1);
-    std::cout<<"end split new node\n";
+    // std::cout<<"end split new node\n";
     return reinterpret_cast<N *>(new_leaf_page);
   }
   InternalPage *inter_page = reinterpret_cast<InternalPage *>(node);
@@ -203,7 +205,7 @@ N *BPLUSTREE_TYPE::Split(N *node) {
   // new_inter_page->SetParentPageId(inter_page->GetParentPageId());
   inter_page->MoveHalfTo(new_inter_page, buffer_pool_manager_);
   // assert(page->GetPinCount() == 1);
-  std::cout<<"end split new node\n";
+  // std::cout<<"end split new node\n";
   return reinterpret_cast<N *>(new_inter_page);
 }
 
@@ -219,7 +221,7 @@ N *BPLUSTREE_TYPE::Split(N *node) {
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node,
                                       Transaction *transaction) {
-                                        std::cout<<"start to insertIntoParent\n";
+                                        // std::cout<<"start to insertIntoParent\n";
   if (old_node->IsRootPage()) {
     Page *new_root_page = buffer_pool_manager_->NewPage(&root_page_id_);
     new_root_page->WLatch();
@@ -234,11 +236,11 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
     reinterpret_cast<Page *>(new_node)->WUnlatch();
     buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     UpdateRootPageId(0);
-    root_latch_.unlock();
-    std::cout<<"end insertIntoParent\n";
+    // root_latch_.unlock();
+    // std::cout<<"end insertIntoParent\n";
     return;
   }
-  root_latch_.unlock();
+  // root_latch_.unlock();
   page_id_t parent_id = old_node->GetParentPageId();
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
@@ -249,7 +251,7 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
   // assert(page->GetPinCount() == 1);
   if (new_size > parent_page->GetMaxSize()) {
     // 处理产生新root节点的问题！
-    root_latch_.lock();
+    // root_latch_.lock();
     InternalPage *new_inter_page = Split(parent_page);
     InsertIntoParent(parent_page, new_inter_page->KeyAt(0), new_inter_page, transaction);
     // buffer_pool_manager_->UnpinPage(new_inter_page->GetPageId(), true);
@@ -259,7 +261,7 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
   buffer_pool_manager_->UnpinPage(parent_id, true);
   reinterpret_cast<Page *>(new_node)->WUnlatch();
   buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
-  std::cout<<"end insertIntoParent\n";
+  // std::cout<<"end insertIntoParent\n";
 }
 
 /*****************************************************************************
@@ -614,11 +616,12 @@ INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Transaction *transaction, bool isSearch) {
   root_latch_.lock();
   Page *parent_page = buffer_pool_manager_->FetchPage(root_page_id_);
-  root_latch_.unlock();
+  // root_latch_.unlock();
   Page *old_parent_page = parent_page;
   page_id_t old_page_id = old_parent_page->GetPageId();
   if(isSearch) {
     old_parent_page->RLatch();
+    // root_latch_.unlock();
   }
   else {
     old_parent_page->WLatch();
