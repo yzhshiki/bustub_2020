@@ -546,7 +546,6 @@ TEST(BPlusTreeConcurrentTest, InsertTest2) {
  * Description: Concurrently delete a set of keys.
  */
 TEST(BPlusTreeConcurrentTest, DeleteTest1) {
-  assert(false);
   TEST_TIMEOUT_BEGIN
   DeleteTest1Call();
   remove("test.db");

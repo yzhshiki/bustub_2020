@@ -189,6 +189,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
   for (int i = index; i < size - 1; ++i) {
     array[i] = array[i + 1];
   }
+  array[size - 1] = {};
   IncreaseSize(-1);
 }
 
@@ -205,6 +206,9 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
     return GetSize();
   }
   Remove(index);
+  if(GetSize() == 0) {
+    std::cout<<"remove "<<key.ToString()<<" and size = 0"<<std::endl;
+  }
   return GetSize();
 }
 

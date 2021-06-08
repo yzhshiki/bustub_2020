@@ -276,36 +276,39 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
  */
 INDEX_TEMPLATE_ARGUMENTS
 void BPLUSTREE_TYPE::Remove(const KeyType &key, Transaction *transaction) {
-  printf("entering remove\n");
+  // printf("entering remove\n");
   root_latch_.lock();
   if (IsEmpty()) {
     root_latch_.unlock();
     return;
   }
-  Print(buffer_pool_manager_);
   root_latch_.unlock();
-  FindLeafPageInTran(key, false, transaction);
+  FindLeafPageInTran(key, false, transaction, false);
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
   Ancestors->pop_back();
-  page->RUnlatch();
-  page->WLatch();
+  // page->RUnlatch();
+  // page->WLatch();
   LeafPage *leaf_page = reinterpret_cast<LeafPage *>(page);
-  printf("entering remove ans delete record\n");
+  // printf("entering remove ans delete record\n");
+  // std::cout<<transaction->GetThreadId()<<std::endl;
+  // std::cout<<"remove "<<key.ToString()<<std::endl;
   leaf_page->RemoveAndDeleteRecord(key, comparator_);
+  // Print(buffer_pool_manager_);
   if (leaf_page->GetSize() < leaf_page->GetMinSize()) {
-    root_latch_.lock();
-    if(!leaf_page->IsRootPage()) {
-      Page *parent_page = Ancestors->back();
-      parent_page->WLatch();
-    }
+    // root_latch_.lock();
+    // if(!leaf_page->IsRootPage()) {
+    //   Page *parent_page = Ancestors->back();
+    //   parent_page->WLatch();
+    // }
     // 持有root锁，当前页写锁，可能持有parent写锁
-    LOG_DEBUG("entering cor\n");
+    // LOG_DEBUG("entering cor\n");
     CoalesceOrRedistribute(leaf_page, transaction);
   }
+  root_latch_.unlock();
+  releaseAncestorLocks(transaction);
   page->WUnlatch();
   buffer_pool_manager_->UnpinPage(leaf_page->GetPageId(), true);
-
 }
 
 /*
@@ -321,7 +324,7 @@ template <typename N>
 bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
   if (node->IsRootPage()) {
     bool del = AdjustRoot(node);
-    root_latch_.unlock();
+    // root_latch_.unlock();
     return del;
   }
   page_id_t parent_id = node->GetParentPageId();
@@ -372,13 +375,14 @@ bool BPLUSTREE_TYPE::CoalesceOrRedistribute(N *node, Transaction *transaction) {
   } else {
     Coalesce(&next_ptr, &node, &parent_ptr, node_index_in_parent, transaction);
   }
+  releaseAncestorLocks(transaction);
   if (pre_id != INVALID_PAGE_ID) {
-    parent_page->WUnlatch();
+    // parent_page->WUnlatch();
     pre_page->WUnlatch();
     buffer_pool_manager_->UnpinPage(pre_id, true);
   }
   if (next_id != INVALID_PAGE_ID) {
-    parent_page->WUnlatch();
+    // parent_page->WUnlatch();
     next_page->WUnlatch();
     buffer_pool_manager_->UnpinPage(next_id, true);
   }
