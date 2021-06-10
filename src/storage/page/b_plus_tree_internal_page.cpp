@@ -78,10 +78,11 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::ValueAt(int index) const { return arra
  */
 INDEX_TEMPLATE_ARGUMENTS
 ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyComparator &comparator) const {
-  // 若Ki为第一个>=key的key，ki==key则返回pi+1，ki>key则返回pi。
+  // 若Ki为第一个>=key的k，ki==key则返回pi+1，ki>key则返回pi。
   // 由于这里的实现方式是使array[0]为invalid，所以ki对应于array[i].first，pi为array[i-1].second（在ki左边）
   // 先写出key比本节点所有key都大的情况
   int size = GetSize();
+  assert(size != 0);
   if (comparator(key, array[size - 1].first) >= 0) {
     return array[size - 1].second;
   }
@@ -90,12 +91,20 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
   int r = size - 1;
   int m = (l + r) >> 1;
   while (l < r) {
-    m = (l + r) >> 1;
-    if (comparator(key, array[m].first) <= 0) {
-      r = m;
-    } else {
-      l = m + 1;
+    m = (l + r + 1) >> 1;
+    int result = comparator(array[m].first, key);
+    if (result == -1) {
+      l = m;
+    } else if (result == 1) {
+      r = m - 1;
+    } else if (result == 0) {
+      return array[m].second;
     }
+    // if (comparator(key, array[m].first) <= 0) {
+    //   r = m;
+    // } else {
+    //   l = m + 1;
+    // }
   }
   if (comparator(key, array[r].first) == -1) {
     return array[r - 1].second;
@@ -241,7 +250,15 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveAndReturnOnlyChild() {
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
-                                               BufferPoolManager *buffer_pool_manager) {
+                                               BufferPoolManager *buffer_pool_manager, bool ToEnd) {
+  if(!ToEnd) {
+    recipient->SetKeyAt(0, middle_key);
+    for(int i = 0; i < GetSize(); ++ i) {
+      MoveLastToFrontOf(recipient, array[i].first, buffer_pool_manager);
+    }
+    SetSize(0);
+    return;
+  }
   int recv_data_len = recipient->GetSize();
   // 把this合并到recipient，交接处是原本在这两兄弟父节点的middlekey+原本在this的第一个指针，后面的KV对就顺序排下来了
   recipient->array[recv_data_len] = std::make_pair(middle_key, array[0].second);

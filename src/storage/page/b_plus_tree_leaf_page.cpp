@@ -59,7 +59,12 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetPrePageId(page_id_t pre_page_id) { pre_page_
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comparator) const {
   int size = GetSize();
-  if (comparator(array[size - 1].first, key) == -1) {
+  if(int(key.ToString()) == 3) {
+    std::cout<<"searching key "<<key.ToString()<<std::endl;
+    std::cout<<"array size: "<<size<<std::endl;
+    std::cout<<"last key in array: "<<array[size - 1].first.ToString()<<std::endl;
+  }
+  if (size == 0 || comparator(array[size - 1].first, key) == -1) {
     return size;
   }
   int l = 0;
@@ -189,7 +194,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
   for (int i = index; i < size - 1; ++i) {
     array[i] = array[i + 1];
   }
-  array[size - 1] = {};
+  // array[size - 1] = {};
   IncreaseSize(-1);
 }
 
@@ -201,10 +206,17 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator) {
+  if(GetSize() == 0) {
+    assert(false);
+    std::cout<<"remove fault: leave was empty\n";
+    return 0;
+  }
   int index = KeyIndex(key, comparator);
-  if (comparator(key, array[index].first) != 0) {
+  if (comparator(key, array[index].first) != 0 || index >= GetSize()) {
+    std::cout<<"remove fault: there's not "<<key.ToString()<<std::endl;
     return GetSize();
   }
+  std::cout<<"remove "<<key.ToString()<<" at index "<<index<<std::endl;
   Remove(index);
   if(GetSize() == 0) {
     std::cout<<"remove "<<key.ToString()<<" and size = 0"<<std::endl;
@@ -220,7 +232,13 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
  * to update the next_page id in the sibling page
  */
 INDEX_TEMPLATE_ARGUMENTS
-void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *recipient) {
+void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *recipient, bool ToEnd) {
+  if(!ToEnd) {
+    for(int i = 0; i < GetSize(); ++ i) {
+      MoveLastToFrontOf(recipient);
+    }
+    SetSize(0);
+  }
   recipient->CopyNFrom(array, GetSize());
   recipient->SetNextPageId(next_page_id_);
   SetSize(0);

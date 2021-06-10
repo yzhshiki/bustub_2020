@@ -99,7 +99,7 @@ class BPlusTree {
 
   template <typename N>
   bool Coalesce(N **neighbor_node, N **node, BPlusTreeInternalPage<KeyType, page_id_t, KeyComparator> **parent,
-                int index, Transaction *transaction = nullptr);
+                int index, Transaction *transaction = nullptr, bool ToLeft = true);
 
   template <typename N>
   void Redistribute(N *neighbor_node, N *node, int index);
