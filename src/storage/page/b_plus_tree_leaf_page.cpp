@@ -59,11 +59,11 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::SetPrePageId(page_id_t pre_page_id) { pre_page_
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::KeyIndex(const KeyType &key, const KeyComparator &comparator) const {
   int size = GetSize();
-  if(int(key.ToString()) == 3) {
-    std::cout<<"searching key "<<key.ToString()<<std::endl;
-    std::cout<<"array size: "<<size<<std::endl;
-    std::cout<<"last key in array: "<<array[size - 1].first.ToString()<<std::endl;
-  }
+  // if(int(key.ToString()) == 3) {
+  //   std::cout<<"searching key "<<key.ToString()<<std::endl;
+  //   std::cout<<"array size: "<<size<<std::endl;
+  //   std::cout<<"last key in array: "<<array[size - 1].first.ToString()<<std::endl;
+  // }
   if (size == 0 || comparator(array[size - 1].first, key) == -1) {
     return size;
   }
