@@ -60,7 +60,10 @@ class BPlusTree {
   INDEXITERATOR_TYPE Begin(const KeyType &key);
   INDEXITERATOR_TYPE end();
 
-  void Print(BufferPoolManager *bpm) {
+  void Print(BufferPoolManager *bpm = nullptr) {
+    if(bpm == nullptr) {
+      bpm = buffer_pool_manager_;
+    }
     ToString(reinterpret_cast<BPlusTreePage *>(bpm->FetchPage(root_page_id_)->GetData()), bpm);
   }
 

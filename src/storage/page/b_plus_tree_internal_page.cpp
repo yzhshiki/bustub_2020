@@ -135,9 +135,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::InsertAt(const int index, const KeyType &ne
     array[i] = array[i - 1];
   }
   array[index] = std::make_pair(new_key, new_value);
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
   IncreaseSize(1);
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
 }
 
 // SetParentToMe, for the moved internal page's children
@@ -198,9 +198,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient
   // 4个移2个，5个移2个。
   int move_size = size / 2;
   recipient->CopyNFrom(array + size - move_size, move_size, buffer_pool_manager);
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
   IncreaseSize(-move_size);
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
 }
 
 /* Copy entries into me, starting from {items} and copy {size} entries.
@@ -229,9 +229,9 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::Remove(int index) {
   for (int i = index; i < size - 1; ++i) {
     array[i] = array[i + 1];
   }
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
   IncreaseSize(-1);
-  std::cout<<"now size: "<<GetSize()<<std::endl;
+  // std::cout<<"now size: "<<GetSize()<<std::endl;
 }
 
 /*

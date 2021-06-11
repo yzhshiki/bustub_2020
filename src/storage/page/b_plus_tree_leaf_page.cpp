@@ -213,10 +213,10 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
   }
   int index = KeyIndex(key, comparator);
   if (comparator(key, array[index].first) != 0 || index >= GetSize()) {
-    std::cout<<"remove fault: there's not "<<key.ToString()<<std::endl;
+    // std::cout<<"remove fault: there's not "<<key.ToString()<<std::endl;
     return GetSize();
   }
-  std::cout<<"remove "<<key.ToString()<<" at index "<<index<<std::endl;
+  // std::cout<<"remove "<<key.ToString()<<" at index "<<index<<std::endl;
   Remove(index);
   if(GetSize() == 0) {
     std::cout<<"remove "<<key.ToString()<<" and size = 0"<<std::endl;

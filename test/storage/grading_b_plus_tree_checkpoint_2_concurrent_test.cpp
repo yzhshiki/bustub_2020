@@ -370,11 +370,14 @@ void MixTest1Call() {
 
     int64_t size = 0;
 
+    tree.Print();
+    assert(false);
     for (auto &pair : tree) {
       EXPECT_EQ((pair.first).ToString(), for_insert[size]);
       size++;
     }
-
+    
+    assert(false);
     EXPECT_EQ(size, for_insert.size());
 
     bpm->UnpinPage(HEADER_PAGE_ID, true);
