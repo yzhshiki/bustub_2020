@@ -259,7 +259,8 @@ void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient,
                                                BufferPoolManager *buffer_pool_manager, bool ToEnd) {
   if(!ToEnd) {
     recipient->SetKeyAt(0, middle_key);
-    for(int i = 0; i < GetSize(); ++ i) {
+    int size = GetSize();
+    for(int i = 0; i < size; ++ i) {
       MoveLastToFrontOf(recipient, array[i].first, buffer_pool_manager);
     }
     SetSize(0);

@@ -360,7 +360,7 @@ void MixTest1Call() {
     tasks.emplace_back(insert_task);
     tasks.emplace_back(delete_task);
     std::vector<std::thread> threads;
-    size_t num_threads = 2;
+    size_t num_threads = 10;
     for (size_t i = 0; i < num_threads; i++) {
       threads.emplace_back(std::thread{tasks[i % tasks.size()], i});
     }
@@ -371,13 +371,13 @@ void MixTest1Call() {
     int64_t size = 0;
 
     tree.Print();
-    assert(false);
+    // assert(false);
     for (auto &pair : tree) {
       EXPECT_EQ((pair.first).ToString(), for_insert[size]);
       size++;
     }
     
-    assert(false);
+    // assert(false);
     EXPECT_EQ(size, for_insert.size());
 
     bpm->UnpinPage(HEADER_PAGE_ID, true);

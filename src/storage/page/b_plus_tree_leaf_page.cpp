@@ -234,10 +234,12 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *recipient, bool ToEnd) {
   if(!ToEnd) {
-    for(int i = 0; i < GetSize(); ++ i) {
+    int size = GetSize();
+    for(int i = 0; i < size; ++ i) {
       MoveLastToFrontOf(recipient);
     }
     SetSize(0);
+    return;
   }
   recipient->CopyNFrom(array, GetSize());
   recipient->SetNextPageId(next_page_id_);
