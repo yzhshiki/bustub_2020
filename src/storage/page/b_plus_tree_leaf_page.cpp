@@ -269,8 +269,9 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::CopyLastFrom(const MappingType &item) { InsertA
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveLastToFrontOf(BPlusTreeLeafPage *recipient) {
-  recipient->CopyFirstFrom(array[GetSize() - 1]);
-  Remove(GetSize() - 1);
+  int size = GetSize();
+  recipient->CopyFirstFrom(array[size - 1]);
+  Remove(size - 1);
 }
 
 /*
