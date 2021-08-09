@@ -48,8 +48,8 @@ class LRUReplacer : public Replacer {
  private:
   // TODO(student): implement me!
   // std::vector<frame_id_t> unpinned_fids_;
-  std::list<frame_id_t> unpinned_fids_{};
-  std::unordered_map<frame_id_t, decltype(unpinned_fids_.begin())> frame2iter_{};
+  std::list<frame_id_t> unpinned_fids_{}; // 存储replacer管理的页的frame_id
+  std::unordered_map<frame_id_t, decltype(unpinned_fids_.begin())> frame2iter_{}; // 从fid映射到上面list中对应元素的迭代器，用于加速list删除元素时的定位耗时
   size_t max_num_pages;
   std::mutex latch_;
 };
