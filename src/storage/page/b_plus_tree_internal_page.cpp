@@ -100,18 +100,10 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::Lookup(const KeyType &key, const KeyCo
     } else if (result == 0) {
       return array[m].second;
     }
-    // if (comparator(key, array[m].first) <= 0) {
-    //   r = m;
-    // } else {
-    //   l = m + 1;
-    // }
   }
   if (comparator(key, array[r].first) == -1) {
     return array[r - 1].second;
   }
-  // else if (comparator(key, array[r].first) == 0) {
-  //   return array[r].second;
-  // }
   return array[r].second;
   // // 顺序写法
   // for (int i = 1; i < size; i++) {
@@ -193,7 +185,7 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveHalfTo(BPlusTreeInternalPage *recipient,
                                                 BufferPoolManager *buffer_pool_manager) {
   // 书上是将自己的KV复制到内存块T中，再将新的KV对插入到T，再把T的前一半复制回来，后一半复制给新节点。
-  // 这里应该是将后一半复制给新节点，暂不知有没有T作为中介。
+  // 这里应该是将后一半移动给新节点，暂不知有没有T作为中介。
   int size = GetSize();
   // 4个移2个，5个移2个。
   int move_size = size / 2;
@@ -257,6 +249,7 @@ ValueType B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveAndReturnOnlyChild() {
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                BufferPoolManager *buffer_pool_manager, bool ToEnd) {
+  // if里是向右Move，外面是向左Move
   if(!ToEnd) {
     recipient->SetKeyAt(0, middle_key);
     int size = GetSize();
