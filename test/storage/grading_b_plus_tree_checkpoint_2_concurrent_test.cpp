@@ -201,7 +201,7 @@ void InsertTest2Call() {
       keys.push_back(key);
     }
     LaunchParallelTest(2, 0, InsertHelperSplit, &tree, keys, 2);
-
+    
     std::vector<RID> rids;
     GenericKey<8> index_key;
     for (auto key : keys) {

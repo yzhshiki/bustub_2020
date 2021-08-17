@@ -42,13 +42,13 @@ bool BPLUSTREE_TYPE::IsEmpty() const { return root_page_id_ == INVALID_PAGE_ID; 
  */
 INDEX_TEMPLATE_ARGUMENTS
 bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result, Transaction *transaction) {
-  root_latch_.lock();
+  // root_latch_.lock();
   // LOG_DEBUG("Getting value of key: %ld\n", key.ToString());
   if (IsEmpty()) {
-    root_latch_.unlock();
+    // root_latch_.unlock();
     return false;
   }
-  root_latch_.unlock();
+  // root_latch_.unlock();
   Page *page = FindLeafPage(key, false);
   LeafPage *leaf_page = reinterpret_cast<LeafPage *>(page);
   ValueType value{};
@@ -84,7 +84,7 @@ bool BPLUSTREE_TYPE::Insert(const KeyType &key, const ValueType &value, Transact
     root_latch_.unlock();
     return true;
   }
-  // root_latch_.unlock();
+  root_latch_.unlock();
   bool ans = InsertIntoLeaf(key, value, transaction, false);
   return ans;
 }
@@ -148,7 +148,7 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
     // std::cout<<transaction->GetThreadId()<<" unlatch page "<<page->GetPageId()<<" in checkDupl"<<std::endl;
     // std::cout<<transaction->GetThreadId()<<" Insert release root latch and leave insert\n";
     page->WUnlatch();
-    root_latch_.unlock();
+    // root_latch_.unlock();
     return false;
   }
   int old_size = leaf_page->GetSize();
@@ -188,7 +188,7 @@ bool BPLUSTREE_TYPE::InsertIntoLeaf(const KeyType &key, const ValueType &value, 
   // LOG_DEBUG("InsertIntoLeaf id: %d with key: %ld, value: %ld\n",leaf_page->GetPageId(), key.ToString(),
   // value.Get());
   // std::cout<<transaction->GetThreadId()<<" Insert release root latch and leave insert\n";
-  root_latch_.unlock();
+  // root_latch_.unlock();
   // std::cout<<"Insert released root latch\n";
   // std::cout<<"leave InsertIntoLeaf"<<std::endl;
   return inserted;
@@ -260,6 +260,7 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
                                         // std::cout<<"start to insertIntoParent\n";
   // std::cout<<"*******before InsertIntoParent*******\n"; 
   // Print();
+  root_latch_.lock();
   if (old_node->IsRootPage()) {
     // std::cout<<"Insert Into Parent and create new root page\n";
     // std::cout<<"*******start up root page*******\n";
@@ -283,11 +284,11 @@ void BPLUSTREE_TYPE::InsertIntoParent(BPlusTreePage *old_node, const KeyType &ke
     reinterpret_cast<Page *>(new_node)->WUnlatch();
     buffer_pool_manager_->UnpinPage(new_node->GetPageId(), true);
     UpdateRootPageId(0);
-    // root_latch_.unlock();
+    root_latch_.unlock();
     // std::cout<<"end insertIntoParent\n";
     return;
   }
-  // root_latch_.unlock();
+  root_latch_.unlock();
   page_id_t parent_id = old_node->GetParentPageId();
   std::shared_ptr<std::deque<Page *>> Ancestors = transaction->GetPageSet();
   Page *page = Ancestors->back();
@@ -719,13 +720,13 @@ INDEXITERATOR_TYPE BPLUSTREE_TYPE::end() { return INDEXITERATOR_TYPE(-1, nullptr
 INDEX_TEMPLATE_ARGUMENTS
 Page *BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost) {
   // std::cout<<"FindLeafPage getting root latch\n";
-  root_latch_.lock();
+  // root_latch_.lock();
   // std::cout<<"FindLeafPage got root latch\n";
   Page *parent_page = buffer_pool_manager_->FetchPage(root_page_id_);
-  Page *old_parent_page = parent_page;
-  // std::cout<<"FindLeafPage getting page "<<old_parent_page->GetPageId()<<" read latch"<<std::endl;
-  old_parent_page->RLatch();
-  // std::cout<<"FindLeafPage got page "<<old_parent_page->GetPageId()<<" read latch"<<std::endl;
+  Page *root_page = parent_page;
+  // std::cout<<"FindLeafPage getting page "<<root_page->GetPageId()<<" read latch"<<std::endl;
+  root_page->RLatch();
+  // std::cout<<"FindLeafPage got page "<<root_page->GetPageId()<<" read latch"<<std::endl;
   BPlusTreePage *bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   page_id_t page_id = parent_page->GetPageId();
   while (!bpt_page->IsLeafPage()) {
@@ -737,19 +738,19 @@ Page *BPLUSTREE_TYPE::FindLeafPage(const KeyType &key, bool leftMost) {
       child_page_id = bpti_page->Lookup(key, comparator_);
     }
     // 更新parent_page, bpt_page, page_id, 将原page_id对应页unpin, fetch新页。
-    buffer_pool_manager_->UnpinPage(page_id, false);
+    // buffer_pool_manager_->UnpinPage(page_id, false);
     page_id = child_page_id;
-    old_parent_page = parent_page;
+    root_page = parent_page;
     parent_page = buffer_pool_manager_->FetchPage(page_id);
-    // std::cout<<"FindLeafPage getting page "<<parent_page->GetPageId()<<" read latch"<<std::endl;
     parent_page->RLatch();
-    // std::cout<<"FindLeafPage got page "<<parent_page->GetPageId()<<" read latch"<<std::endl;
-    // std::cout<<"FindLeafPage release page "<<old_parent_page->GetPageId()<<" read latch"<<std::endl;
-    old_parent_page->RUnlatch();
+
+    root_page->RUnlatch();
+    buffer_pool_manager_->UnpinPage(root_page->GetPageId(), false);
+
     bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   }
   // LOG_DEBUG("FindLeafPage id: %d\nLeafPage size is : %d\n", parent_page->GetPageId(), bpt_page->GetSize());
-  root_latch_.unlock();
+  // root_latch_.unlock();
   return parent_page;
   // throw Exception(ExceptionType::NOT_IMPLEMENTED, "Implement this for test");
 }
@@ -760,21 +761,26 @@ void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Trans
   // std::cout<<"enter FindLeafPageInTran "<<transaction->GetThreadId()<<std::endl;
   Page *parent_page = buffer_pool_manager_->FetchPage(root_page_id_);
   // root_latch_.unlock();
-  Page *old_parent_page = parent_page;
-  page_id_t old_page_id = old_parent_page->GetPageId();
+  Page *root_page = parent_page;
+  // page_id_t old_page_id = root_page->GetPageId();
   if(isSearch) {
-    old_parent_page->RLatch();
+    root_page->RLatch();
     // root_latch_.unlock();
   }
   else {
-    // std::cout<<transaction->GetThreadId()<<" latch page in FindLeafpageInTran "<<old_parent_page->GetPageId()<<std::endl;
-    old_parent_page->WLatch();
-    // std::cout<<"now root size: "<<reinterpret_cast<BPlusTreePage *>(old_parent_page)->GetSize()<<std::endl;
-    // if(old_page_id == 0) {
-    //   std::cout<<"add page 0 to pageset at root\n";
-    // }
+    root_page->WLatch();
   }
-  transaction->AddIntoPageSet(old_parent_page);
+  // 这里是为了避免根节点即将出现变化时，多线程同时来到，于是让其余线程重来。
+  if(root_page->GetPageId() != root_page_id_) {
+    if(isSearch) {
+      root_page->RUnlatch();
+    }
+    else {
+      root_page->WUnlatch();
+    }
+    return FindLeafPageInTran(key, leftMost, transaction, isSearch);
+  }
+  transaction->AddIntoPageSet(root_page);
   BPlusTreePage *bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   page_id_t page_id = parent_page->GetPageId();
   while (!bpt_page->IsLeafPage()) {
@@ -784,38 +790,22 @@ void BPLUSTREE_TYPE::FindLeafPageInTran(const KeyType &key, bool leftMost, Trans
       child_page_id = bpti_page->ValueAt(0);
     } else {
       child_page_id = bpti_page->Lookup(key, comparator_);
-      // if(child_page_id == 0 || child_page_id > 500) {
-      //   std::cout<<"lookup key "<<key.ToString()<<std::endl;
-      //   std::cout<<"root page size: "<<bpti_page->GetSize()<<std::endl;
-      //   Print(buffer_pool_manager_);
-      //   assert(false);  
-      // }
     }
     // 更新parent_page, bpt_page, page_id, 将原page_id对应页unpin, fetch新页。
     page_id = child_page_id;
-    old_parent_page = parent_page;
+    root_page = parent_page;
     parent_page = buffer_pool_manager_->FetchPage(page_id);
     if(isSearch) {
       parent_page->RLatch();
       transaction->AddIntoPageSet(parent_page);
-      old_parent_page->RUnlatch();
-      buffer_pool_manager_->UnpinPage(old_page_id, false);
+      root_page->RUnlatch();
+      buffer_pool_manager_->UnpinPage(root_page->GetPageId(), false);
     }
     else {
-      // if(parent_page->GetPageId() > 500) {
-      //   std::cout<<"lookup key "<<key.ToString()<<std::endl;
-      //   Print();
-      //   assert(false);  
-      // }
-      // std::cout<<transaction->GetThreadId()<<" latch page in FindLeafpageInTran "<<parent_page->GetPageId()<<std::endl;
       parent_page->WLatch();
-      // if(page_id == 0) {
-      //   std::cout<<"page nums: "<<transaction->GetPageSet()->size()<<std::endl;
-      //   std::cout<<"add page 0 to pageset in rout\n";
-      // }
       transaction->AddIntoPageSet(parent_page);
     }
-    old_page_id = page_id;
+    // old_page_id = page_id;
     bpt_page = reinterpret_cast<InternalPage *>(parent_page);
   }
   // std::cout<<"leave FindLeafPageInTran "<<transaction->GetThreadId()<<std::endl;
