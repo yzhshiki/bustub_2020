@@ -250,10 +250,10 @@ INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key,
                                                BufferPoolManager *buffer_pool_manager, bool ToEnd) {
   // if里是向右Move，外面是向左Move
-  if(!ToEnd) {
+  if (!ToEnd) {
     recipient->SetKeyAt(0, middle_key);
     int size = GetSize();
-    for(int i = 0; i < size; ++ i) {
+    for (int i = 0; i < size; ++i) {
       MoveLastToFrontOf(recipient, array[i].first, buffer_pool_manager);
     }
     SetSize(0);

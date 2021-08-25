@@ -10,10 +10,10 @@
 //===----------------------------------------------------------------------===//
 #pragma once
 
+// #include <mutex>
 #include <queue>
 #include <string>
 #include <vector>
-#include <mutex>
 
 #include "concurrency/transaction.h"
 #include "storage/index/index_iterator.h"
@@ -61,7 +61,7 @@ class BPlusTree {
   INDEXITERATOR_TYPE end();
 
   void Print(BufferPoolManager *bpm = nullptr) {
-    if(bpm == nullptr) {
+    if (bpm == nullptr) {
       bpm = buffer_pool_manager_;
     }
     ToString(reinterpret_cast<BPlusTreePage *>(bpm->FetchPage(root_page_id_)->GetData()), bpm);
@@ -82,14 +82,15 @@ class BPlusTree {
   void RemoveFromFile(const std::string &file_name, Transaction *transaction = nullptr);
   // expose for test purpose
   Page *FindLeafPage(const KeyType &key, bool leftMost = false);
-  void FindLeafPageInTran(const KeyType &key, bool leftMost = false, Transaction *transaction = nullptr, bool isSearch = true);
-  void GetOptimLocks(Transaction *transaction){};
+  void FindLeafPageInTran(const KeyType &key, bool leftMost = false, Transaction *transaction = nullptr,
+                          bool isSearch = true);
   void releaseAncestorLocks(Transaction *transaction);
 
  private:
   void StartNewTree(const KeyType &key, const ValueType &value);
 
-  bool InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr, bool notfull = true);
+  bool InsertIntoLeaf(const KeyType &key, const ValueType &value, Transaction *transaction = nullptr,
+                      bool notfull = true);
 
   void InsertIntoParent(BPlusTreePage *old_node, const KeyType &key, BPlusTreePage *new_node,
                         Transaction *transaction = nullptr);

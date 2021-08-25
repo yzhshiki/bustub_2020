@@ -206,9 +206,9 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::Remove(int index) {
  */
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const KeyComparator &comparator) {
-  if(GetSize() == 0) {
+  if (GetSize() == 0) {
     assert(false);
-    std::cout<<"remove fault: leave was empty\n";
+    std::cout << "remove fault: leave was empty\n";
     return 0;
   }
   int index = KeyIndex(key, comparator);
@@ -218,8 +218,8 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
   }
   // std::cout<<"remove "<<key.ToString()<<" at index "<<index<<std::endl;
   Remove(index);
-  if(GetSize() == 0) {
-    std::cout<<"remove "<<key.ToString()<<" and size = 0"<<std::endl;
+  if (GetSize() == 0) {
+    std::cout << "remove " << key.ToString() << " and size = 0" << std::endl;
   }
   return GetSize();
 }
@@ -233,9 +233,9 @@ int B_PLUS_TREE_LEAF_PAGE_TYPE::RemoveAndDeleteRecord(const KeyType &key, const 
  */
 INDEX_TEMPLATE_ARGUMENTS
 void B_PLUS_TREE_LEAF_PAGE_TYPE::MoveAllTo(BPlusTreeLeafPage *recipient, bool ToEnd) {
-  if(!ToEnd) {
+  if (!ToEnd) {
     int size = GetSize();
-    for(int i = 0; i < size; ++ i) {
+    for (int i = 0; i < size; ++i) {
       MoveLastToFrontOf(recipient);
     }
     SetSize(0);

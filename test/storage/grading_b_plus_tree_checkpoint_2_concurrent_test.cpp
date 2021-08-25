@@ -201,7 +201,7 @@ void InsertTest2Call() {
       keys.push_back(key);
     }
     LaunchParallelTest(2, 0, InsertHelperSplit, &tree, keys, 2);
-    
+
     std::vector<RID> rids;
     GenericKey<8> index_key;
     for (auto key : keys) {
@@ -370,14 +370,14 @@ void MixTest1Call() {
 
     int64_t size = 0;
 
-    std::cout<<"iter "<<iter<<std::endl;
+    std::cout << "iter " << iter << std::endl;
     // tree.Print();
     // assert(false);
     for (auto &pair : tree) {
       EXPECT_EQ((pair.first).ToString(), for_insert[size]);
       size++;
     }
-    
+
     // assert(false);
     EXPECT_EQ(size, for_insert.size());
 
@@ -449,7 +449,7 @@ void MixTest2Call() {
     }
 
     EXPECT_EQ(size, perserved_keys.size());
-    std::cout<<"iter "<<iter<<std::endl;
+    std::cout << "iter " << iter << std::endl;
     bpm->UnpinPage(HEADER_PAGE_ID, true);
     delete key_schema;
     delete disk_manager;
@@ -510,7 +510,7 @@ void MixTest3Call() {
     }
 
     EXPECT_EQ(size, for_insert.size());
-    std::cout<<"iter "<<iter<<std::endl;
+    std::cout << "iter " << iter << std::endl;
     bpm->UnpinPage(HEADER_PAGE_ID, true);
     delete key_schema;
     delete disk_manager;
