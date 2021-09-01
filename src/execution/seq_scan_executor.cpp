@@ -13,7 +13,12 @@
 
 namespace bustub {
 
-SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan) : AbstractExecutor(exec_ctx) {}
+SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNode *plan)
+    : AbstractExecutor(exec_ctx),
+    plan_(plan),
+    table_metadata_(exec_ctx->GetCatalog()->GetTable()),
+    iter_(exec_ctx->GetCatalog()->GetTable()->),
+    {}
 
 void SeqScanExecutor::Init() {}
 
