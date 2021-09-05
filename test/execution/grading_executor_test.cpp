@@ -55,7 +55,7 @@ class GradingExecutorTest : public ::testing::Test {
     catalog_ = std::make_unique<Catalog>(bpm_.get(), lock_manager_.get(), log_manager_.get());
     // Begin a new transaction, along with its executor context.
     txn_ = txn_mgr_->Begin();
-    exec_ctx_ = std::make_unique<ExecutorContext>(txn_, catalog_.get(), bpm_.get());
+    exec_ctx_ = std::make_unique<ExecutorContext>(txn_, catalog_.get(), bpm_.get(), GetTxnManager(), nullptr);
     // Generate some test tables.
     TableGenerator gen{exec_ctx_.get()};
     gen.GenerateTestTables();
@@ -388,7 +388,7 @@ TEST_F(GradingExecutorTest, SimpleUpdateTest) {
   GetExecutionEngine()->Execute(scan_plan2.get(), &result_set2, GetTxn(), GetExecutorContext());
 
   auto txn = GetTxnManager()->Begin();
-  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM());
+  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM(), GetTxnManager(), nullptr);
 
   std::unordered_map<uint32_t, UpdateInfo> update_attrs;
   update_attrs.insert(std::make_pair(0, UpdateInfo(UpdateType::Add, 10)));
@@ -449,7 +449,7 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
   Tuple index_key = Tuple(result_set[0]);
 
   auto txn = GetTxnManager()->Begin();
-  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM());
+  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM(), GetTxnManager(), nullptr);
   std::unique_ptr<AbstractPlanNode> delete_plan;
   { delete_plan = std::make_unique<DeletePlanNode>(scan_plan1.get(), table_info->oid_); }
   GetExecutionEngine()->Execute(delete_plan.get(), nullptr, txn, exec_ctx.get());

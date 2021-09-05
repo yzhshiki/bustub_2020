@@ -148,7 +148,7 @@ class Catalog {
   }
 
   std::vector<IndexInfo *> GetTableIndexes(const std::string &table_name) {
-    std::unordered_map<std::string, index_oid_t> index_names_oids_ = index_names_.at(table_name);
+    std::unordered_map<std::string, index_oid_t> index_names_oids_ = index_names_[table_name];
     std::vector<IndexInfo *> indexinfos_;
     auto iter = index_names_oids_.begin();
     while (iter != index_names_oids_.end()) {

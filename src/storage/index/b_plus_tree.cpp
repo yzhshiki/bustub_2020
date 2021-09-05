@@ -56,16 +56,17 @@ bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
   exist = leaf_page->Lookup(key, &value, comparator_);
   if (exist) {
     result->push_back(value);
-    if (static_cast<int>(key.ToString()) != static_cast<int>(value.GetSlotNum())) {
-      Print();
-      bool reverify = leaf_page->Lookup(key, &value, comparator_);
-      std::cout << reverify << std::endl;
-    }
-  } else {
-    Print();
-    bool reverify = leaf_page->Lookup(key, &value, comparator_);
-    std::cout << reverify << std::endl;
-  }
+    // if (static_cast<int>(key.ToString()) != static_cast<int>(value.GetSlotNum())) {
+    //   Print();
+    //   bool reverify = leaf_page->Lookup(key, &value, comparator_);
+    //   std::cout << reverify << std::endl;
+    // }
+  } 
+  // else {
+  //   Print();
+  //   bool reverify = leaf_page->Lookup(key, &value, comparator_);
+  //   std::cout << reverify << std::endl;
+  // }
   page->RUnlatch();
   buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
   return exist;
