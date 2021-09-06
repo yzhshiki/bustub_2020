@@ -46,7 +46,7 @@ bool InsertExecutor::Next([[maybe_unused]] Tuple *tuple, RID *rid) {
     return false;
   }
   const std::vector<std::vector<Value>> values = plan_->RawValues();
-  for (const auto & value : values) {
+  for (const auto &value : values) {
     Tuple new_tuple(value, &table_metadata_->schema_);
     InsertTupleAndIndex(&new_tuple, rid, exec_ctx_->GetTransaction());
   }
