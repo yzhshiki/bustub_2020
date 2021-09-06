@@ -61,7 +61,7 @@ bool BPLUSTREE_TYPE::GetValue(const KeyType &key, std::vector<ValueType> *result
     //   bool reverify = leaf_page->Lookup(key, &value, comparator_);
     //   std::cout << reverify << std::endl;
     // }
-  } 
+  }
   // else {
   //   Print();
   //   bool reverify = leaf_page->Lookup(key, &value, comparator_);

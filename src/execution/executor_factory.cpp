@@ -87,7 +87,9 @@ std::unique_ptr<AbstractExecutor> ExecutorFactory::CreateExecutor(ExecutorContex
       return std::make_unique<NestIndexJoinExecutor>(exec_ctx, nested_index_join_plan, std::move(left));
     }
 
-    default: { BUSTUB_ASSERT(false, "Unsupported plan type."); }
+    default: {
+      BUSTUB_ASSERT(false, "Unsupported plan type.");
+    }
   }
 }
 
