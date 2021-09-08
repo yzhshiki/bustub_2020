@@ -110,7 +110,7 @@ class BPlusTree {
   template <typename N>
   void Redistribute(N *neighbor_node, N *node, int index);
 
-  bool AdjustRoot(BPlusTreePage *node);
+  bool AdjustRoot(BPlusTreePage *node, Transaction *transaction = nullptr);
 
   void UpdateRootPageId(int insert_record = 0);
 
@@ -119,6 +119,7 @@ class BPlusTree {
 
   void ToString(BPlusTreePage *page, BufferPoolManager *bpm) const;
 
+  bool IsSafe(BPlusTreePage *node, Operation op);
   // member variable
   std::string index_name_;
   page_id_t root_page_id_;

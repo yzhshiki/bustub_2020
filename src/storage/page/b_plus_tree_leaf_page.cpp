@@ -135,6 +135,9 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::InsertAt(int index, const KeyType &key, const V
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) {
   int index = KeyIndex(key, comparator);
+  if(checkDupl(key, comparator)) {
+    return GetSize();
+  }
   InsertAt(index, key, value);
   return GetSize();
 }

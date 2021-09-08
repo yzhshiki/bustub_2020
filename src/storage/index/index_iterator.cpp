@@ -49,14 +49,14 @@ INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
     page_id_t next_page_id = leaf_page_->GetNextPageId();
     // 若下一页是invalid
     if (next_page_id == INVALID_PAGE_ID) {
-      reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
+      // reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
       buffer_pool_manager_->UnpinPage(page_id, false);
       leaf_page_ = nullptr;
       index_in_leaf_ = -1;
       page_id = -1;
       return *this;
     }
-    reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
+    // reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
     buffer_pool_manager_->UnpinPage(page_id, false);
     Page *next_page = buffer_pool_manager_->FetchPage(next_page_id);
     next_page->RLatch();

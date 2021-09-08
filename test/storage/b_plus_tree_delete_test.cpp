@@ -50,7 +50,7 @@ TEST(BPlusTreeTests, DeleteTest1) {
     int64_t value = key & 0xFFFFFFFF;
     EXPECT_EQ(rids[0].GetSlotNum(), value);
   }
-
+  tree.Print();
   int64_t start_key = 1;
   int64_t current_key = start_key;
   index_key.SetFromInteger(start_key);
@@ -59,6 +59,7 @@ TEST(BPlusTreeTests, DeleteTest1) {
     EXPECT_EQ(location.GetPageId(), 0);
     EXPECT_EQ(location.GetSlotNum(), current_key);
     current_key = current_key + 1;
+    tree.GetValue(index_key, &rids, transaction);
   }
 
   EXPECT_EQ(current_key, keys.size() + 1);
@@ -66,6 +67,8 @@ TEST(BPlusTreeTests, DeleteTest1) {
   std::vector<int64_t> remove_keys = {1, 5};
   for (auto key : remove_keys) {
     index_key.SetFromInteger(key);
+
+    tree.GetValue(index_key, &rids, transaction);
     tree.Remove(index_key, transaction);
   }
 

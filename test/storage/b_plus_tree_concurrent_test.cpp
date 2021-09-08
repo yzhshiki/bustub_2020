@@ -112,7 +112,7 @@ TEST(BPlusTreeConcurrentTest, InsertTest1) {
     keys.push_back(key);
   }
   LaunchParallelTest(2, InsertHelper, &tree, keys);
-
+  tree.Print();
   std::vector<RID> rids;
   GenericKey<8> index_key;
   for (auto key : keys) {
