@@ -23,18 +23,19 @@ SeqScanExecutor::SeqScanExecutor(ExecutorContext *exec_ctx, const SeqScanPlanNod
       predicate_(plan->GetPredicate()) {}
 
 void SeqScanExecutor::Init() {
-  iter_ = exec_ctx_->GetCatalog()->GetTable(plan_->GetTableOid())->table_->Begin(exec_ctx_->GetTransaction());
+  iter_ = table_metadata_->table_->Begin(exec_ctx_->GetTransaction());
+  iter_end_ = table_metadata_->table_->End();
 }
 
 bool SeqScanExecutor::Next(Tuple *tuple, RID *rid) {
   while (iter_ != iter_end_) {
     *rid = iter_->GetRid();
     *tuple = *iter_;
-    iter_++;
-    if (predicate_ == nullptr || predicate_->Evaluate(tuple, &table_metadata_->schema_).GetAs<bool>()) {
+    ++iter_;
+    if (nullptr == predicate_ || predicate_->Evaluate(tuple, &table_metadata_->schema_).GetAs<bool>()) {
       const Schema *output_schema = plan_->OutputSchema();
       std::vector<Value> values(output_schema->GetColumnCount());
-      auto output_column = output_schema->GetColumns();
+      auto &output_column = output_schema->GetColumns();
       for (size_t i = 0; i < values.size(); ++i) {
         // values[i] = tuple->GetValue(&table_metadata_->schema_,
         // table_metadata_->schema_.GetColIdx(output_column[i].GetName())); values[i] =

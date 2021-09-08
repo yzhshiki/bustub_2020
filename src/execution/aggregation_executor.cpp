@@ -32,6 +32,11 @@ void AggregationExecutor::Init() {
 }
 
 bool AggregationExecutor::Next(Tuple *tuple, RID *rid) {
+  if (!out_tuple_.empty()) {
+    *tuple = out_tuple_.back();
+    out_tuple_.pop_back();
+    return true;
+  }
   // 首先把所有子节点的tuple中的所需数据取出，放入哈希表
   bool aht_changed = false;
   while (child_->Next(tuple, rid)) {
@@ -50,14 +55,19 @@ bool AggregationExecutor::Next(Tuple *tuple, RID *rid) {
                ->EvaluateAggregate(aht_iterator_.Key().group_bys_, aht_iterator_.Val().aggregates_)
                .GetAs<bool>()) {
       Tuple result(aht_iterator_.Val().aggregates_, plan_->OutputSchema());
-      *tuple = result;
+      out_tuple_.push_back(result);
       ++aht_iterator_;
-      return true;
     }
   } else {
-    Tuple result(aht_iterator_.Val().aggregates_, plan_->OutputSchema());
-    *tuple = result;
-    ++aht_iterator_;
+    while (aht_iterator_ != aht_.End()) {
+      Tuple result(aht_iterator_.Val().aggregates_, plan_->OutputSchema());
+      out_tuple_.push_back(result);
+      ++aht_iterator_;
+    }
+  }
+  if (!out_tuple_.empty()) {
+    *tuple = out_tuple_.back();
+    out_tuple_.pop_back();
     return true;
   }
   return false;

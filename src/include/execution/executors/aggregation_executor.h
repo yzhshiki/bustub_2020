@@ -200,5 +200,6 @@ class AggregationExecutor : public AbstractExecutor {
   /** Simple aggregation hash table iterator. */
   SimpleAggregationHashTable::Iterator aht_iterator_;
   Tuple def_key_tuple_;
+  std::vector<Tuple> out_tuple_;
 };
 }  // namespace bustub

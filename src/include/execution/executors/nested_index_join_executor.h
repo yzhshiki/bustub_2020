@@ -21,7 +21,6 @@
 #include "execution/executor_context.h"
 #include "execution/executors/abstract_executor.h"
 #include "execution/expressions/abstract_expression.h"
-#include "execution/expressions/column_value_expression.h"
 #include "execution/plans/nested_index_join_plan.h"
 #include "storage/table/tmp_tuple.h"
 #include "storage/table/tuple.h"
@@ -55,6 +54,10 @@ class NestIndexJoinExecutor : public AbstractExecutor {
   Tuple last_outer_tuple_;
   RID last_outer_rid_;
   bool outer_ended_;
-  std::vector<Tuple> last_joined_tuples;
+  [[maybe_unused]] std::vector<Tuple *> last_joined_tuples;
+  TableMetadata *inner_table;
+  IndexInfo *inner_index;
+  const AbstractExpression *predicate_;
+  u_int32_t colid_in_childschema_;
 };
 }  // namespace bustub
