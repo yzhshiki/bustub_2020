@@ -27,7 +27,7 @@ INDEX_TEMPLATE_ARGUMENTS
 INDEXITERATOR_TYPE::~IndexIterator() {
   // maybe i should judge if the page_id is INVALID?
   if (buffer_pool_manager_ != nullptr && leaf_page_ != nullptr) {
-    reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
+    // reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
     buffer_pool_manager_->UnpinPage(page_id, false);
   }
 }
@@ -59,7 +59,7 @@ INDEXITERATOR_TYPE &INDEXITERATOR_TYPE::operator++() {
     // reinterpret_cast<Page *>(leaf_page_)->RUnlatch();
     buffer_pool_manager_->UnpinPage(page_id, false);
     Page *next_page = buffer_pool_manager_->FetchPage(next_page_id);
-    next_page->RLatch();
+    // next_page->RLatch();
     leaf_page_ = reinterpret_cast<B_PLUS_TREE_LEAF_PAGE_TYPE *>(next_page->GetData());
     index_in_leaf_ = 0;
     page_id = leaf_page_->GetPageId();

@@ -110,6 +110,9 @@ const MappingType &B_PLUS_TREE_LEAF_PAGE_TYPE::GetItem(int index) {
 // check if there already exists the key
 INDEX_TEMPLATE_ARGUMENTS
 bool B_PLUS_TREE_LEAF_PAGE_TYPE::checkDupl(const KeyType &key, const KeyComparator &comparator) {
+  if (GetSize() == 0) {
+    return false;
+  }
   int index;
   index = KeyIndex(key, comparator);
   return (comparator(key, KeyAt(index)) == 0);
@@ -135,7 +138,7 @@ void B_PLUS_TREE_LEAF_PAGE_TYPE::InsertAt(int index, const KeyType &key, const V
 INDEX_TEMPLATE_ARGUMENTS
 int B_PLUS_TREE_LEAF_PAGE_TYPE::Insert(const KeyType &key, const ValueType &value, const KeyComparator &comparator) {
   int index = KeyIndex(key, comparator);
-  if(checkDupl(key, comparator)) {
+  if (checkDupl(key, comparator)) {
     return GetSize();
   }
   InsertAt(index, key, value);

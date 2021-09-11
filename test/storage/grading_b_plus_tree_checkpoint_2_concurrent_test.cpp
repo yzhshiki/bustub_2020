@@ -371,10 +371,10 @@ void MixTest1Call() {
     int64_t size = 0;
 
     std::cout << "iter " << iter << std::endl;
-    tree.Print();
+    // tree.Print();
     // assert(false);
     for (auto &pair : tree) {
-      if((pair.first).ToString() != for_insert[size]) {
+      if ((pair.first).ToString() != for_insert[size]) {
         tree.Print();
         assert(false);
       }

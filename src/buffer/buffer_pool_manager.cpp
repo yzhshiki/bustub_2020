@@ -40,12 +40,21 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
   // std::cout << "FetchPage page_id: " << page_id << std::endl;
   // 1.     Search the page table for the requested page (P).
   // 1.1    If P exists, pin it and return it immediately.
+  if (page_id == -1) {
+    return nullptr;
+  }
   frame_id_t frame_id;
   if (page_table_.find(page_id) != page_table_.end()) {
     // std::cout << "Got from page table\n";
     auto p = page_table_.find(page_id);
     frame_id = p->second;
     Page *page = pages_ + frame_id;
+    // if(page->GetPageId() != page_id) {
+    //   for(size_t i = 0; i < pool_size_; i ++) {
+    //     [[maybe_unused]] Page *test_page = pages_ + i;
+    //     std::cout<<"page id "<<test_page->GetPageId()<<std::endl;
+    //   }
+    // }
     page->pin_count_++;
     replacer_->Pin(frame_id);
     // std::cout << "Got from page table\n";
@@ -65,7 +74,7 @@ Page *BufferPoolManager::FetchPageImpl(page_id_t page_id) {
     } else {
       // 走到这里说明freelist和replacer里unpinned_fids都为空，说明pages_所有page都是pinned状态
       delete f;
-      // std::cout << "all pages are pinned\n";
+      std::cout << "all pages are pinned\n";
       return nullptr;
     }
   }

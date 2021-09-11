@@ -1,0 +1,28 @@
+140737216755456 out leaf split for page 14
+140737216755456 in insertintoParent for page 14
+140737216755456 out normal insertIntoParent for page 1419 to 3
+140737216755456 out Insert 
+140737216755456 in Insert 
+140737216755456 in FindleafPage 
+140737208362752 in FindleafPage get page 19
+140737233540864 in FindleafPage get page 14
+140737233540864 out Insert 
+140737233540864 in Insert 
+140737233540864 in FindleafPage 
+140737208362752 out Remove 
+140737208362752 in Remove 
+140737208362752 in FindleafPage 
+140737208362752 in FindleafPage get page 19
+140737233540864 in FindleafPage get page 14
+140737233540864 out Insert 
+140737233540864 in Insert 
+140737233540864 in FindleafPage 
+140737208362752 in coalesce for page 19 14 to 3
+140737208362752 out coalesce for page 1914 to 3
+140737208362752 out Remove 
+140737208362752 in Remove 
+140737208362752 in FindleafPage 
+140737233540864 in FindleafPage get page 14
+140737233540864 out Insert 
+140737233540864 in Insert 
+140737233540864 in FindleafPage 
