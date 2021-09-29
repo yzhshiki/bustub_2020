@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>  // NOLINT
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -130,6 +131,7 @@ class LockManager {
 
   /** Runs cycle detection in the background. */
   void RunCycleDetection();
+  bool dfs(txn_id_t cur_tid, std::unordered_set<txn_id_t> &Visited, std::unordered_set<txn_id_t> &InCycle);
 
  private:
   std::mutex latch_;
@@ -140,6 +142,10 @@ class LockManager {
   std::unordered_map<RID, LockRequestQueue> lock_table_;
   /** Waits-for graph representation. */
   std::unordered_map<txn_id_t, std::vector<txn_id_t>> waits_for_;
+  /** If the rid in X Lock, Mark True */
+  std::unordered_map<RID, bool> rid_exclusive_;
+  /** who are waiting on the rid */
+  std::unordered_map<txn_id_t , RID> tid_to_rid_;
 };
 
 }  // namespace bustub
