@@ -192,25 +192,21 @@ void LockManager::RemoveEdge(txn_id_t t1, txn_id_t t2) {
 }
 
 bool LockManager::dfs(txn_id_t cur_tid, std::unordered_set<txn_id_t> &Visited, std::unordered_set<txn_id_t> &InCycle) {
+  Visited.insert(cur_tid);
+  InCycle.insert(cur_tid);
   std::vector<txn_id_t> &wait_tids = waits_for_[cur_tid];
   for(txn_id_t next_tid : wait_tids) {
-    if(Visited.find(next_tid) == Visited.end()) {
-      Visited.insert(next_tid);
-      InCycle.insert(next_tid);
-      bool cycle = dfs(next_tid, Visited, InCycle);
-      if(!cycle) {
-        InCycle.erase(next_tid);
-      }
-      else {
-        return true;
-      }
+    if(InCycle.find(next_tid) != InCycle.end()) {
+      return true;
     }
-    else {
-      if(InCycle.find(next_tid) != InCycle.end()) {
+    if(Visited.find(next_tid) == Visited.end()) {
+      bool cycle = dfs(next_tid, Visited, InCycle);
+      if(cycle) {
         return true;
       }
     }
   }
+  InCycle.erase(cur_tid);
   return false;
 }
 
@@ -220,7 +216,23 @@ bool LockManager::HasCycle(txn_id_t *txn_id) {
   }
   std::unordered_set<txn_id_t> Visited;
   std::unordered_set<txn_id_t> InCycle;
-  bool cycle = dfs(waits_for_.begin()->first, Visited, InCycle);
+  // 首先从最小的txn_id开始dfs，若是没有循环依赖，再从其他未访问的事务开始dfs。
+  txn_id_t min_tid = INT_MAX;
+  auto iter = waits_for_.begin();
+  while(iter != waits_for_.end()) {
+    min_tid = std::min(min_tid, iter->first);
+    ++ iter;
+  }
+  iter = waits_for_.begin();
+  bool cycle = dfs(min_tid, Visited, InCycle);
+  if(!cycle) {
+    while(iter != waits_for_.end()) {
+      if(Visited.find(iter->first) == Visited.end()) {
+        cycle = dfs(iter->first, Visited, InCycle);
+      }
+      ++ iter;
+    }
+  }
   if(cycle) {
     txn_id_t newest_tid = INT_MIN;
     for(const txn_id_t &InCycleId : InCycle) {
