@@ -414,6 +414,7 @@ TEST_F(GradingExecutorTest, SimpleUpdateTest) {
     ASSERT_TRUE(cola_val == colb_val + 10);
   }
   delete key_schema;
+  std::cout<<"f updatetest\n";
 }
 
 // NOLINTNEXTLINE
@@ -423,6 +424,7 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
   // SELECT colA FROM test_1 WHERE colA < 50
 
   // Construct query plan
+  std::cout<<"s del test\n";
   auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
   auto &schema = table_info->schema_;
   auto colA = MakeColumnValueExpression(schema, 0, "colA");
@@ -431,6 +433,7 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
   auto out_schema1 = MakeOutputSchema({{"colA", colA}});
   auto scan_plan1 = std::make_unique<SeqScanPlanNode>(out_schema1, predicate, table_info->oid_);
   // index
+  std::cout<<"index\n";
   Schema *key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema);
   auto index_info = GetExecutorContext()->GetCatalog()->CreateIndex<GenericKey<8>, RID, GenericComparator<8>>(
@@ -438,31 +441,37 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
       8);
 
   // Execute
+  std::cout<<"execute\n";
   std::vector<Tuple> result_set;
   GetExecutionEngine()->Execute(scan_plan1.get(), &result_set, GetTxn(), GetExecutorContext());
 
   // Verify
+  std::cout<<"verify\n";
   for (const auto &tuple : result_set) {
     ASSERT_TRUE(tuple.GetValue(out_schema1, out_schema1->GetColIdx("colA")).GetAs<int32_t>() < 50);
   }
   ASSERT_EQ(result_set.size(), 50);
   Tuple index_key = Tuple(result_set[0]);
 
+  std::cout<<"begin\n";
   auto txn = GetTxnManager()->Begin();
   auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM(), GetTxnManager(), nullptr);
   std::unique_ptr<AbstractPlanNode> delete_plan;
   { delete_plan = std::make_unique<DeletePlanNode>(scan_plan1.get(), table_info->oid_); }
   GetExecutionEngine()->Execute(delete_plan.get(), nullptr, txn, exec_ctx.get());
 
+  std::cout<<"commit\n";
   GetTxnManager()->Commit(txn);
   delete txn;
 
+  std::cout<<"commit finish\n";
   result_set.clear();
   GetExecutionEngine()->Execute(scan_plan1.get(), &result_set, GetTxn(), GetExecutorContext());
   ASSERT_TRUE(result_set.empty());
 
   std::vector<RID> rids;
 
+  std::cout<<"scankey\n";
   index_info->index_->ScanKey(index_key, &rids, GetTxn());
   ASSERT_TRUE(rids.empty());
 

@@ -39,15 +39,20 @@ void TransactionManager::Commit(Transaction *txn) {
 
   // Perform all deletes before we commit.
   auto write_set = txn->GetWriteSet();
+  std::cout << "write set size : ";
+  std::cout << write_set->size()<<std::endl;
   while (!write_set->empty()) {
     auto &item = write_set->back();
     auto table = item.table_;
     if (item.wtype_ == WType::DELETE) {
       // Note that this also releases the lock when holding the page latch.
-      table->ApplyDelete(item.rid_, txn);
+        std::cout<<"before table applyDelete\n";
+        table->ApplyDelete(item.rid_, txn);
+        std::cout<<"after table applyDelete\n";
     }
     write_set->pop_back();
   }
+  std::cout<<"clear write set\n";
   write_set->clear();
 
   // Release all the locks.

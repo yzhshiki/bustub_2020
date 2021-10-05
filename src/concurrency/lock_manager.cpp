@@ -105,13 +105,20 @@ bool LockManager::LockUpgrade(Transaction *txn, const RID &rid) {
   };
   while(ToBeBlocked()) {
     for(const auto &lock_request : lock_queue.request_queue_) {
-        AddEdge(txn->GetTransactionId(), lock_request.txn_id_);
+        if(lock_request.txn_id_ != txn->GetTransactionId()) {
+            AddEdge(txn->GetTransactionId(), lock_request.txn_id_);
+        }
     }
     tid_to_rid_[txn->GetTransactionId()] = rid;
     lock_queue.cv_.wait(waitlock);
   }
-  assert(lock_queue.request_queue_.size() == 1 && lock_queue.request_queue_.back().lock_mode_ == LockMode::SHARED 
-            && lock_queue.request_queue_.back().txn_id_ == txn->GetTransactionId() && rid_exclusive_[rid] == false);
+//  if(!(lock_queue.request_queue_.size() == 1 && lock_queue.request_queue_.back().lock_mode_ == LockMode::SHARED
+//     && lock_queue.request_queue_.back().txn_id_ == txn->GetTransactionId() && rid_exclusive_[rid] == false)) {
+//      std::cout<<lock_queue.request_queue_.size()<<std::endl;
+//      std::cout<<rid_exclusive_[rid]<<std::endl;
+//      assert(lock_queue.request_queue_.size() == 1 && lock_queue.request_queue_.back().lock_mode_ == LockMode::SHARED
+//             && lock_queue.request_queue_.back().txn_id_ == txn->GetTransactionId() && rid_exclusive_[rid] == false);
+//  }
   // 解除当前事务对其他事务的依赖状态
   for(const auto &lock_request : lock_queue.request_queue_) {
     RemoveEdge(txn->GetTransactionId(), lock_request.txn_id_);
@@ -131,6 +138,8 @@ bool LockManager::LockUpgrade(Transaction *txn, const RID &rid) {
 }
 
 bool LockManager::Unlock(Transaction *txn, const RID &rid) {
+    std::cout<<"lock table size : "<<std::endl;
+    std::cout<<lock_table_.size()<<std::endl;
   if(lock_table_.find(rid) == lock_table_.end()) {
     return false;
   }
@@ -152,9 +161,9 @@ bool LockManager::Unlock(Transaction *txn, const RID &rid) {
   switch(lockmode) {
     case LockMode::SHARED: {
       txn->GetSharedLockSet()->erase(rid);
-      if(lock_queue.request_queue_.empty()) {
+//      if(lock_queue.request_queue_.empty()) {
         lock_queue.cv_.notify_all();
-      }
+//      }
       break;
     }
     case LockMode::EXCLUSIVE: {
@@ -265,6 +274,10 @@ void LockManager::RunCycleDetection() {
       txn_id_t tid_to_vic;
       bool cycle = HasCycle(&tid_to_vic);
       if(cycle) {
+//         auto edge_list =  GetEdgeList();
+//         for(auto edge_pair : edge_list) {
+//             std::cout<<edge_pair.first<<" has a pointer to "<<edge_pair.second<<std::endl;
+//         }
         Transaction *vic_txn = TransactionManager::GetTransaction(tid_to_vic);
         vic_txn->SetState(TransactionState::ABORTED);
         // throw TransactionAbortException(tid_to_vic, AbortReason::DEADLOCK);

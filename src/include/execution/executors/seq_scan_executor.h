@@ -46,5 +46,8 @@ class SeqScanExecutor : public AbstractExecutor {
   TableIterator iter_;
   TableIterator iter_end_;
   const AbstractExpression *predicate_;
+  TransactionManager *txn_manager_;
+  Transaction *txn_;
+  LockManager *lock_manager_;
 };
 }  // namespace bustub
