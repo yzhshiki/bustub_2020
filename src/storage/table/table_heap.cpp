@@ -136,13 +136,9 @@ void TableHeap::ApplyDelete(const RID &rid, Transaction *txn) {
   BUSTUB_ASSERT(page != nullptr, "Couldn't find a page containing that RID.");
   // Delete the tuple from the page.
   page->WLatch();
-    std::cout<<"before page applyDelete\n";
     page->ApplyDelete(rid, txn, log_manager_);
-    std::cout<<"lock manager unlock\n";
     lock_manager_->Unlock(txn, rid);
-    std::cout<<"unlatch\n";
     page->WUnlatch();
-    std::cout<<"bpm unpin\n";
     buffer_pool_manager_->UnpinPage(page->GetTablePageId(), true);
 }
 

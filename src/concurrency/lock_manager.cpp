@@ -138,8 +138,6 @@ bool LockManager::LockUpgrade(Transaction *txn, const RID &rid) {
 }
 
 bool LockManager::Unlock(Transaction *txn, const RID &rid) {
-    std::cout<<"lock table size : "<<std::endl;
-    std::cout<<lock_table_.size()<<std::endl;
   if(lock_table_.find(rid) == lock_table_.end()) {
     return false;
   }

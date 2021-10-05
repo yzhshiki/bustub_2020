@@ -51,11 +51,13 @@ class GradingExecutorTest : public ::testing::Test {
     bpm_ = std::make_unique<BufferPoolManager>(2560, disk_manager_.get());
     page_id_t page_id;
     bpm_->NewPage(&page_id);
+    lock_manager_ = std::make_unique<LockManager>();
     txn_mgr_ = std::make_unique<TransactionManager>(lock_manager_.get(), log_manager_.get());
     catalog_ = std::make_unique<Catalog>(bpm_.get(), lock_manager_.get(), log_manager_.get());
     // Begin a new transaction, along with its executor context.
     txn_ = txn_mgr_->Begin();
-    exec_ctx_ = std::make_unique<ExecutorContext>(txn_, catalog_.get(), bpm_.get(), GetTxnManager(), nullptr);
+    exec_ctx_ =
+        std::make_unique<ExecutorContext>(txn_, catalog_.get(), bpm_.get(), txn_mgr_.get(), lock_manager_.get());
     // Generate some test tables.
     TableGenerator gen{exec_ctx_.get()};
     gen.GenerateTestTables();
@@ -80,6 +82,7 @@ class GradingExecutorTest : public ::testing::Test {
   TransactionManager *GetTxnManager() { return txn_mgr_.get(); }
   Catalog *GetCatalog() { return catalog_.get(); }
   BufferPoolManager *GetBPM() { return bpm_.get(); }
+  LockManager *GetLockManager() { return lock_manager_.get(); }
 
   // The below helper functions are useful for testing.
 
@@ -127,7 +130,7 @@ class GradingExecutorTest : public ::testing::Test {
   Transaction *txn_{nullptr};
   std::unique_ptr<DiskManager> disk_manager_;
   std::unique_ptr<LogManager> log_manager_ = nullptr;
-  std::unique_ptr<LockManager> lock_manager_ = nullptr;
+  std::unique_ptr<LockManager> lock_manager_;
   std::unique_ptr<BufferPoolManager> bpm_;
   std::unique_ptr<Catalog> catalog_;
   std::unique_ptr<ExecutorContext> exec_ctx_;
@@ -245,18 +248,16 @@ TEST_F(GradingExecutorTest, SimpleRawInsertWithIndexTest) {
   std::vector<RID> rids;
 
   // Get RID from index, fetch tuple and then compare
-  for (auto &i : result_set) {
-    rids.clear();
-    auto index_key = i.KeyFromTuple(schema, index_info->key_schema_, index_info->index_->GetKeyAttrs());
-    index_info->index_->ScanKey(index_key, &rids, GetTxn());
+  for (size_t i = 0; i < result_set.size(); ++i) {
+    index_info->index_->ScanKey(result_set[i], &rids, GetTxn());
     Tuple indexed_tuple;
-    auto fetch_tuple = table_info->table_->GetTuple(rids[0], &indexed_tuple, GetTxn());
+    auto fetch_tuple = table_info->table_->GetTuple(rids[i], &indexed_tuple, GetTxn());
 
     ASSERT_TRUE(fetch_tuple);
     ASSERT_EQ(indexed_tuple.GetValue(out_schema, out_schema->GetColIdx("colA")).GetAs<int32_t>(),
-              i.GetValue(out_schema, out_schema->GetColIdx("colA")).GetAs<int32_t>());
+              result_set[i].GetValue(out_schema, out_schema->GetColIdx("colA")).GetAs<int32_t>());
     ASSERT_EQ(indexed_tuple.GetValue(out_schema, out_schema->GetColIdx("colB")).GetAs<int32_t>(),
-              i.GetValue(out_schema, out_schema->GetColIdx("colB")).GetAs<int32_t>());
+              result_set[i].GetValue(out_schema, out_schema->GetColIdx("colB")).GetAs<int32_t>());
   }
   delete key_schema;
 }
@@ -316,19 +317,17 @@ TEST_F(GradingExecutorTest, SimpleSelectInsertTest) {
   ASSERT_EQ(result_set1.size(), 399);
 
   std::vector<RID> rids;
-  for (auto &i : result_set2) {
-    rids.clear();
+  for (size_t i = 0; i < result_set2.size(); ++i) {
     auto table_info = GetExecutorContext()->GetCatalog()->GetTable("empty_table2");
-    auto index_key = i.KeyFromTuple(table_info->schema_, index_info->key_schema_, index_info->index_->GetKeyAttrs());
-    index_info->index_->ScanKey(index_key, &rids, GetTxn());
+    index_info->index_->ScanKey(result_set2[i], &rids, GetTxn());
     Tuple indexed_tuple;
-    auto fetch_tuple = table_info->table_->GetTuple(rids[0], &indexed_tuple, GetTxn());
+    auto fetch_tuple = table_info->table_->GetTuple(rids[i], &indexed_tuple, GetTxn());
 
     ASSERT_TRUE(fetch_tuple);
     ASSERT_EQ(indexed_tuple.GetValue(out_schema2, out_schema2->GetColIdx("colA")).GetAs<int32_t>(),
-              i.GetValue(out_schema2, out_schema2->GetColIdx("colA")).GetAs<int32_t>());
+              result_set2[i].GetValue(out_schema2, out_schema2->GetColIdx("colA")).GetAs<int32_t>());
     ASSERT_EQ(indexed_tuple.GetValue(out_schema2, out_schema2->GetColIdx("colB")).GetAs<int32_t>(),
-              i.GetValue(out_schema2, out_schema2->GetColIdx("colB")).GetAs<int32_t>());
+              result_set2[i].GetValue(out_schema2, out_schema2->GetColIdx("colB")).GetAs<int32_t>());
   }
 
   delete key_schema;
@@ -387,23 +386,16 @@ TEST_F(GradingExecutorTest, SimpleUpdateTest) {
   std::vector<Tuple> result_set2;
   GetExecutionEngine()->Execute(scan_plan2.get(), &result_set2, GetTxn(), GetExecutorContext());
 
-  auto txn = GetTxnManager()->Begin();
-  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM(), GetTxnManager(), nullptr);
-
   std::unordered_map<uint32_t, UpdateInfo> update_attrs;
   update_attrs.insert(std::make_pair(0, UpdateInfo(UpdateType::Add, 10)));
   std::unique_ptr<AbstractPlanNode> update_plan;
   { update_plan = std::make_unique<UpdatePlanNode>(scan_empty_plan.get(), table_info->oid_, update_attrs); }
 
   std::vector<Tuple> result_set;
-  GetExecutionEngine()->Execute(update_plan.get(), &result_set, txn, exec_ctx.get());
-
-  GetTxnManager()->Commit(txn);
-  delete txn;
+  GetExecutionEngine()->Execute(update_plan.get(), &result_set, GetTxn(), GetExecutorContext());
 
   std::vector<RID> rids;
   for (int32_t i = 0; i < 50; ++i) {
-    rids.clear();
     Tuple key = Tuple({Value(TypeId::INTEGER, i)}, key_schema);
     index_info_2->index_->ScanKey(key, &rids, GetTxn());
     Tuple indexed_tuple;
@@ -414,7 +406,6 @@ TEST_F(GradingExecutorTest, SimpleUpdateTest) {
     ASSERT_TRUE(cola_val == colb_val + 10);
   }
   delete key_schema;
-  std::cout<<"f updatetest\n";
 }
 
 // NOLINTNEXTLINE
@@ -424,7 +415,6 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
   // SELECT colA FROM test_1 WHERE colA < 50
 
   // Construct query plan
-  std::cout<<"s del test\n";
   auto table_info = GetExecutorContext()->GetCatalog()->GetTable("test_1");
   auto &schema = table_info->schema_;
   auto colA = MakeColumnValueExpression(schema, 0, "colA");
@@ -433,7 +423,6 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
   auto out_schema1 = MakeOutputSchema({{"colA", colA}});
   auto scan_plan1 = std::make_unique<SeqScanPlanNode>(out_schema1, predicate, table_info->oid_);
   // index
-  std::cout<<"index\n";
   Schema *key_schema = ParseCreateStatement("a bigint");
   GenericComparator<8> comparator(key_schema);
   auto index_info = GetExecutorContext()->GetCatalog()->CreateIndex<GenericKey<8>, RID, GenericComparator<8>>(
@@ -441,37 +430,26 @@ TEST_F(GradingExecutorTest, SimpleDeleteTest) {
       8);
 
   // Execute
-  std::cout<<"execute\n";
   std::vector<Tuple> result_set;
   GetExecutionEngine()->Execute(scan_plan1.get(), &result_set, GetTxn(), GetExecutorContext());
 
   // Verify
-  std::cout<<"verify\n";
   for (const auto &tuple : result_set) {
     ASSERT_TRUE(tuple.GetValue(out_schema1, out_schema1->GetColIdx("colA")).GetAs<int32_t>() < 50);
   }
   ASSERT_EQ(result_set.size(), 50);
   Tuple index_key = Tuple(result_set[0]);
 
-  std::cout<<"begin\n";
-  auto txn = GetTxnManager()->Begin();
-  auto exec_ctx = std::make_unique<ExecutorContext>(txn, GetCatalog(), GetBPM(), GetTxnManager(), nullptr);
   std::unique_ptr<AbstractPlanNode> delete_plan;
   { delete_plan = std::make_unique<DeletePlanNode>(scan_plan1.get(), table_info->oid_); }
-  GetExecutionEngine()->Execute(delete_plan.get(), nullptr, txn, exec_ctx.get());
+  GetExecutionEngine()->Execute(delete_plan.get(), nullptr, GetTxn(), GetExecutorContext());
 
-  std::cout<<"commit\n";
-  GetTxnManager()->Commit(txn);
-  delete txn;
-
-  std::cout<<"commit finish\n";
   result_set.clear();
   GetExecutionEngine()->Execute(scan_plan1.get(), &result_set, GetTxn(), GetExecutorContext());
   ASSERT_TRUE(result_set.empty());
 
   std::vector<RID> rids;
 
-  std::cout<<"scankey\n";
   index_info->index_->ScanKey(index_key, &rids, GetTxn());
   ASSERT_TRUE(rids.empty());
 
